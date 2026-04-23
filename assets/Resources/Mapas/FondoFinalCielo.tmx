@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="32" height="18" tilewidth="32" tileheight="32" infinite="0" nextlayerid="3" nextobjectid="1">
+ <imagelayer id="2" name="Capa de Imagen 1">
+  <image source="MapaCielo.jpeg" width="1536" height="1024"/>
+ </imagelayer>
+</map>
