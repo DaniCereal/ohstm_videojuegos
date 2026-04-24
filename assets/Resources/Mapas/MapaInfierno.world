@@ -27,6 +27,20 @@
             "width": 1024,
             "x": 1024,
             "y": -576
+        },
+        {
+            "fileName": "Infierno1.6.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 3072,
+            "y": -576
+        },
+        {
+            "fileName": "Infierno1.5.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 2048,
+            "y": -576
         }
     ],
     "onlyShowAdjacentMaps": false,
