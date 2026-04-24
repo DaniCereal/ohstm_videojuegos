@@ -1,0 +1,34 @@
+{
+    "maps": [
+        {
+            "fileName": "Infierno1.2.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": -1024,
+            "y": -576
+        },
+        {
+            "fileName": "Infierno1.1.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 0,
+            "y": -576
+        },
+        {
+            "fileName": "Infierno1.4.tmx",
+            "height": 384,
+            "width": 1024,
+            "x": -544,
+            "y": 0
+        },
+        {
+            "fileName": "Infierno1.3.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 1024,
+            "y": -576
+        }
+    ],
+    "onlyShowAdjacentMaps": false,
+    "type": "world"
+}
