@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="32" height="12" tilewidth="32" tileheight="32" infinite="0" nextlayerid="2" nextobjectid="1">
  <tileset firstgid="1" source="ImagenInfierno.tsx"/>
- <layer id="1" name="Capa de patrones 1" width="32" height="12">
+ <layer id="1" name="Capa de patrones 1" width="32" height="12" offsetx="8" offsety="4">
   <data encoding="csv">
 616,901,902,903,904,905,906,907,908,909,910,911,912,907,908,901,901,902,903,904,905,906,907,908,909,910,911,912,741,742,743,744,
 658,943,944,945,946,947,948,949,950,951,952,953,954,949,950,943,943,944,945,946,947,948,949,950,951,952,953,954,783,784,785,786,

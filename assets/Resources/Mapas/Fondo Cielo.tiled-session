@@ -1,5 +1,5 @@
 {
-    "activeFile": "MapaCielo1.5.tmx",
+    "activeFile": "Infierno1.6.tmx",
     "expandedProjectPaths": [
     ],
     "file.lastUsedOpenFilter": "Todos los archivos (*)",
@@ -21,8 +21,8 @@
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": -456,
-                "y": 42
+                "x": -222,
+                "y": 314
             }
         },
         "FondoFinalCielo.tmx": {
@@ -42,6 +42,7 @@
             }
         },
         "ImagenInfierno.tsx": {
+            "dynamicWrapping": false,
             "scaleInDock": 0.125,
             "scaleInEditor": 1
         },
@@ -52,48 +53,56 @@
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 514,
-                "y": 284
+                "x": 1334,
+                "y": 286
             }
         },
         "Infierno1.2.tmx": {
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 514,
-                "y": 288
+                "x": 430,
+                "y": 286
             }
         },
         "Infierno1.3.tmx": {
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 514,
-                "y": 288
+                "x": 2022,
+                "y": 286
             }
         },
         "Infierno1.4.tmx": {
-            "scale": 0.33,
+            "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 510.60606060606057,
-                "y": 190.90909090909076
+                "x": 1150,
+                "y": 234
             }
         },
         "Infierno1.5.tmx": {
-            "scale": 0.75,
+            "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 185.33333333333337,
-                "y": 385.99999999999994
+                "x": 998,
+                "y": 286
             }
         },
         "Infierno1.6.tmx": {
-            "scale": 0.33,
+            "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 510.60606060606057,
-                "y": 287.87878787878776
+                "x": -26,
+                "y": 286
+            }
+        },
+        "Infierno1.7.tmx": {
+            "scale": 0.25,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -242,
+                "y": 386
             }
         },
         "MapaCielo.tsx": {
@@ -102,11 +111,11 @@
             "scaleInEditor": 0.5
         },
         "MapaCielo1.2.tmx": {
-            "scale": 0.75,
+            "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": -1883.3333333333333,
-                "y": 188.66666666666663
+                "x": -134,
+                "y": 314
             }
         },
         "MapaCielo1.3.tmx": {
@@ -121,19 +130,19 @@
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 414,
-                "y": 42
+                "x": 674,
+                "y": 314
             }
         },
         "MapaCielo1.5.tmx": {
             "expandedObjectLayers": [
                 3
             ],
-            "scale": 2,
-            "selectedLayer": 1,
+            "scale": 0.25,
+            "selectedLayer": 0,
             "viewCenter": {
-                "x": 249.25,
-                "y": 401.25
+                "x": 1634,
+                "y": 314
             }
         },
         "MapaCielo1.tsx": {
@@ -165,32 +174,30 @@
     "last.imagePath": "C:/Users/Usuario/Desktop/Desarrollo de videojuegos/ohstm_videojuegos/assets/Resources/Mapas",
     "last.worldFilePath": "C:/Users/Usuario/Desktop/Desarrollo de videojuegos/ohstm_videojuegos/assets/Resources/Mapas",
     "loadedWorlds": [
-        "C:/Users/Usuario/Desktop/Desarrollo de videojuegos/ohstm_videojuegos/assets/Resources/Mapas/MapaCieloFinal.world"
+        "C:/Users/Usuario/Desktop/Desarrollo de videojuegos/ohstm_videojuegos/assets/Resources/Mapas/MapaCieloFinal.world",
+        "C:/Users/Usuario/Desktop/Desarrollo de videojuegos/ohstm_videojuegos/assets/Resources/Mapas/MapaInfierno.world"
     ],
     "map.lastUsedFormat": "tmx",
     "openFiles": [
-        "Cielo1.1.tmx",
-        "MapaCielo1.2.tmx",
-        "MapaCielo1.tsx",
-        "MapaCielo1.3.tmx",
-        "MapaCielo1.4.tmx",
-        "MapaCielo1.5.tmx",
-        "Nubes.tsx"
+        "Infierno1.4.tmx",
+        "Infierno1.2.tmx",
+        "Infierno1.5.tmx",
+        "Infierno1.6.tmx"
     ],
     "project": "Fondo Cielo.tiled-project",
     "recentFiles": [
         "Cielo1.1.tmx",
-        "MapaCielo1.2.tmx",
-        "MapaCielo1.tsx",
-        "MapaCielo1.3.tmx",
-        "MapaCielo1.4.tmx",
+        "MapaCielo.tsx",
+        "Infierno1.6.tmx",
+        "Infierno1.5.tmx",
+        "Infierno1.3.tmx",
+        "Infierno1.1.tmx",
+        "Infierno1.2.tmx",
+        "Infierno1.4.tmx",
+        "Infierno1.7.tmx",
         "Nubes.tsx",
         "MapaCielo1.5.tmx",
-        "MapaCielo.tsx",
-        "Infierno1.5.tmx",
-        "Infierno1.6.tmx",
-        "Infierno1.4.tmx",
-        "Infierno1.3.tmx"
+        "MapaCielo1.4.tmx"
     ],
     "tileset.lastUsedFormat": "tsx"
 }
