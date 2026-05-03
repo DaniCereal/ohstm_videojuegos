@@ -1,25 +1,11 @@
 {
     "maps": [
         {
-            "fileName": "Infierno1.2.tmx",
-            "height": 576,
-            "width": 1024,
-            "x": -1024,
-            "y": -576
-        },
-        {
             "fileName": "Infierno1.1.tmx",
             "height": 576,
             "width": 1024,
             "x": 0,
             "y": -576
-        },
-        {
-            "fileName": "Infierno1.4.tmx",
-            "height": 384,
-            "width": 1024,
-            "x": -544,
-            "y": 0
         },
         {
             "fileName": "Infierno1.3.tmx",
@@ -41,6 +27,41 @@
             "width": 1024,
             "x": 2048,
             "y": -576
+        },
+        {
+            "fileName": "Infierno1.2.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": -1024,
+            "y": -576
+        },
+        {
+            "fileName": "Infierno1.8.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 0,
+            "y": -1152
+        },
+        {
+            "fileName": "Infierno1.9.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": -1024,
+            "y": -1152
+        },
+        {
+            "fileName": "Infierno1.10.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 2048,
+            "y": -1152
+        },
+        {
+            "fileName": "Infierno1.11.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 2048,
+            "y": -1696
         }
     ],
     "onlyShowAdjacentMaps": false,

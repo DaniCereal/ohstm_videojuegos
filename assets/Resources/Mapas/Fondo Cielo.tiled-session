@@ -1,5 +1,5 @@
 {
-    "activeFile": "Infierno1.6.tmx",
+    "activeFile": "Infierno1.11.tmx",
     "expandedProjectPaths": [
     ],
     "file.lastUsedOpenFilter": "Todos los archivos (*)",
@@ -21,8 +21,8 @@
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": -222,
-                "y": 314
+                "x": -438,
+                "y": 886
             }
         },
         "FondoFinalCielo.tmx": {
@@ -41,6 +41,10 @@
                 "y": 287.79542438985163
             }
         },
+        "Humo.tsx": {
+            "scaleInDock": 0.125,
+            "scaleInEditor": 0.75
+        },
         "ImagenInfierno.tsx": {
             "dynamicWrapping": false,
             "scaleInDock": 0.125,
@@ -50,42 +54,74 @@
             "scaleInDock": 1
         },
         "Infierno1.1.tmx": {
+            "scale": 0.33,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 510.60606060606074,
+                "y": 286.3636363636365
+            }
+        },
+        "Infierno1.10.tmx": {
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 1334,
-                "y": 286
+                "x": 512,
+                "y": 288
+            }
+        },
+        "Infierno1.11.tmx": {
+            "scale": 0.25,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -2406,
+                "y": 1626
+            }
+        },
+        "Infierno1.12.tmx": {
+            "scale": 0.25,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -1286,
+                "y": 466
+            }
+        },
+        "Infierno1.13.tmx": {
+            "scale": 0.125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -3492,
+                "y": 764
             }
         },
         "Infierno1.2.tmx": {
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 430,
-                "y": 286
+                "x": 4494,
+                "y": -802
             }
         },
         "Infierno1.3.tmx": {
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 2022,
-                "y": 286
+                "x": 1786,
+                "y": 466
             }
         },
         "Infierno1.4.tmx": {
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 1150,
-                "y": 234
+                "x": 518,
+                "y": 192
             }
         },
         "Infierno1.5.tmx": {
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 998,
+                "x": 70,
                 "y": 286
             }
         },
@@ -93,7 +129,7 @@
             "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": -26,
+                "x": -4498,
                 "y": 286
             }
         },
@@ -105,9 +141,25 @@
                 "y": 386
             }
         },
+        "Infierno1.8.tmx": {
+            "scale": 0.33,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 445.4545454545455,
+                "y": 287.87878787878776
+            }
+        },
+        "Infierno1.9.tmx": {
+            "scale": 0.33,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 512.1212121212121,
+                "y": 287.87878787878776
+            }
+        },
         "MapaCielo.tsx": {
             "dynamicWrapping": false,
-            "scaleInDock": 1,
+            "scaleInDock": 0.125,
             "scaleInEditor": 0.5
         },
         "MapaCielo1.2.tmx": {
@@ -119,11 +171,11 @@
             }
         },
         "MapaCielo1.3.tmx": {
-            "scale": 0.5,
+            "scale": 0.25,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": -2413,
-                "y": 369
+                "x": -2942,
+                "y": 314
             }
         },
         "MapaCielo1.4.tmx": {
@@ -139,10 +191,34 @@
                 3
             ],
             "scale": 0.25,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 834,
+                "y": 314
+            }
+        },
+        "MapaCielo1.6.tmx": {
+            "scale": 0.33,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 1634,
-                "y": 314
+                "x": 595.4545454545453,
+                "y": 74.24242424242425
+            }
+        },
+        "MapaCielo1.7.tmx": {
+            "scale": 0.25,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1406,
+                "y": 646
+            }
+        },
+        "MapaCielo1.8.tmx": {
+            "scale": 0.33,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1556.060606060606,
+                "y": 74.24242424242425
             }
         },
         "MapaCielo1.tsx": {
@@ -177,27 +253,33 @@
         "C:/Users/Usuario/Desktop/Desarrollo de videojuegos/ohstm_videojuegos/assets/Resources/Mapas/MapaCieloFinal.world",
         "C:/Users/Usuario/Desktop/Desarrollo de videojuegos/ohstm_videojuegos/assets/Resources/Mapas/MapaInfierno.world"
     ],
+    "map.height": 18,
     "map.lastUsedFormat": "tmx",
+    "map.width": 32,
     "openFiles": [
-        "Infierno1.4.tmx",
+        "Infierno1.1.tmx",
         "Infierno1.2.tmx",
-        "Infierno1.5.tmx",
-        "Infierno1.6.tmx"
+        "Infierno1.3.tmx",
+        "Humo.tsx",
+        "Infierno1.8.tmx",
+        "Infierno1.9.tmx",
+        "Infierno1.10.tmx",
+        "Infierno1.11.tmx"
     ],
     "project": "Fondo Cielo.tiled-project",
     "recentFiles": [
+        "Infierno1.2.tmx",
+        "Infierno1.1.tmx",
+        "Infierno1.3.tmx",
+        "Humo.tsx",
+        "Infierno1.8.tmx",
+        "Infierno1.9.tmx",
+        "Infierno1.10.tmx",
+        "Infierno1.11.tmx",
         "Cielo1.1.tmx",
-        "MapaCielo.tsx",
         "Infierno1.6.tmx",
         "Infierno1.5.tmx",
-        "Infierno1.3.tmx",
-        "Infierno1.1.tmx",
-        "Infierno1.2.tmx",
-        "Infierno1.4.tmx",
-        "Infierno1.7.tmx",
-        "Nubes.tsx",
-        "MapaCielo1.5.tmx",
-        "MapaCielo1.4.tmx"
+        "Infierno1.4.tmx"
     ],
     "tileset.lastUsedFormat": "tsx"
 }
