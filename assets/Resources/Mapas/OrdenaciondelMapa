@@ -1,0 +1,20 @@
+El mapa esta creado de la siguiente manera:
+        Primer Mapa--> Infierno1.2
+        Segundo Mapa--> Infierno1.1
+        Tercer Mapa --> Infierno1.3
+        Cuarto Mapa--> Infierno1.5
+        Quinto Mapa--> Infierno1.6
+El infierno1.4 en un pozo de lava, es un "png" de un charco 
+de lava asi que si lo quereis usar como columna de lava estara
+ok
+
+El mapa del cielo esta creado de la siguiente manera:
+        Primer Mapa--> MapaCielo1.5
+        Segundo Mapa--> MapaCielo1.4
+        Tercer Mapa --> MapaCielo1.1
+        Cuarto Mapa--> MapaCielo1.2
+        Quinto Mapa--> MapaCielo1.3
+
+Todos los mapas van de izquirda a derecha, esto quiere decir que 
+por ejemplo, el primer mapa del cielo es la 1.5, luego la 1.4
+
