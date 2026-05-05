@@ -12,7 +12,7 @@ import arcade
 # Constants
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
-WINDOW_TITLE = "Platformer"
+WINDOW_TITLE = "OH HERMES SEND THE MESSAGE"
 
 # Constants used to scale our sprites from their original size
 TILE_SCALING = 0.5
@@ -68,6 +68,8 @@ class PlayerCharacter(Character):
         # textures in animations
         self.climbing = False
         self.should_update_walk = 0
+        self.jump_pressed = False
+        self.coyote_timer = 0
 
     def update_animation(self, delta_time):
 
@@ -362,6 +364,25 @@ class GameView(arcade.View):
         # Move the player using our physics engine
         self.physics_engine.update()
 
+        # --- COYOTE TIME ---
+        if self.physics_engine.can_jump():
+            self.player_sprite.coyote_timer = 0.12
+        else:
+            self.player_sprite.coyote_timer = max(
+                0, self.player_sprite.coyote_timer - delta_time
+            )
+
+        # --- Better Jump ---
+
+        # Caída más rápida
+        if self.player_sprite.change_y < 0:
+            self.player_sprite.change_y -= GRAVITY * 0.8
+
+        # Salto variable (si sueltas antes)
+        elif self.player_sprite.change_y > 0:
+            if not self.player_sprite.jump_pressed:
+                self.player_sprite.change_y -= GRAVITY * 1.5
+
         # Update our characters animation state
         if self.physics_engine.is_on_ladder():
             self.player_sprite.climbing = True
@@ -476,11 +497,14 @@ class GameView(arcade.View):
         # different if we had a separate button for jumping, we would only need
         # to handle moving upwards if we were on a ladder for the up key then.
         # Here we also handle the case where we have moved down while on a ladder.
+        # Coyote Jump is a mechanic that allows the user to have a more permissive jump
+        # allowing them to jump even if theres no floor for a couple seconds
         if self.up_pressed and not self.down_pressed:
             if self.physics_engine.is_on_ladder():
                 self.player_sprite.change_y = PLAYER_MOVEMENT_SPEED
-            elif self.physics_engine.can_jump(y_distance=10):
+            elif self.physics_engine.can_jump(y_distance=10) or self.player_sprite.coyote_timer > 0:
                 self.player_sprite.change_y = PLAYER_JUMP_SPEED
+                self.player_sprite.coyote_timer = 0
                 arcade.play_sound(self.jump_sound)
         elif self.down_pressed and not self.up_pressed:
             if self.physics_engine.is_on_ladder():
@@ -517,6 +541,7 @@ class GameView(arcade.View):
 
         if key == arcade.key.UP or key == arcade.key.W:
             self.up_pressed = True
+            self.player_sprite.jump_pressed = True
         elif key == arcade.key.DOWN or key == arcade.key.S:
             self.down_pressed = True
         elif key == arcade.key.LEFT or key == arcade.key.A:
@@ -534,6 +559,7 @@ class GameView(arcade.View):
 
         if key == arcade.key.LEFT or key == arcade.key.A:
             self.left_pressed = False
+            self.player_sprite.jump_pressed = False
         elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.right_pressed = False
         elif key == arcade.key.UP or key == arcade.key.W:
