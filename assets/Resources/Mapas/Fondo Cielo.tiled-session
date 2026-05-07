@@ -7,6 +7,12 @@
         "#Base": {
             "scaleInDock": 1
         },
+        "#ImagenInfierno": {
+            "scaleInDock": 0.125
+        },
+        "#MapaCielo": {
+            "scaleInDock": 0.125
+        },
         "#PalaformaSubidaNube": {
             "dynamicWrapping": true,
             "scaleInDock": 2,
@@ -21,20 +27,23 @@
             "scale": 0.5,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 271,
-                "y": 213
+                "x": -1271,
+                "y": 515
             }
         },
         "Cielo1.1.tmx#MapaCielo": {
             "scaleInDock": 0.125
         },
         "Cielo1.10.tmx": {
-            "scale": 0.5,
+            "scale": 0.125,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": -791,
-                "y": 41
+                "x": 524,
+                "y": -924
             }
+        },
+        "Cielo1.10.tmx#MapaCielo": {
+            "scaleInDock": 1
         },
         "Cielo1.2.tmx": {
             "scale": 0.25,
@@ -48,11 +57,11 @@
             "scaleInDock": 0.125
         },
         "Cielo1.3.tmx": {
-            "scale": 0.25,
+            "scale": 0.33,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 1186,
-                "y": 630
+                "x": 1489.3939393939395,
+                "y": 1083.3333333333333
             }
         },
         "Cielo1.3.tmx#MapaCielo": {
@@ -81,33 +90,33 @@
             "scaleInDock": 1
         },
         "Cielo1.6.tmx": {
-            "scale": 0.25,
+            "scale": 0.33,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 966,
-                "y": -738
+                "x": 2513.6363636363635,
+                "y": 1083.3333333333333
             }
         },
         "Cielo1.6.tmx#MapaCielo": {
             "scaleInDock": 0.125
         },
         "Cielo1.7.tmx": {
-            "scale": 0.25,
+            "scale": 0.5,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 3714,
-                "y": 1062
+                "x": 1801,
+                "y": 515
             }
         },
         "Cielo1.7.tmx#MapaCielo": {
             "scaleInDock": 1
         },
         "Cielo1.8.tmx": {
-            "scale": 0.25,
+            "scale": 0.33,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 1862,
-                "y": -774
+                "x": 465.15151515151524,
+                "y": 507.57575757575773
             }
         },
         "Cielo1.8.tmx#MapaCielo": {
@@ -360,26 +369,26 @@
         "C:/Users/Usuario/Desktop/Desarrollo de videojuegos/ohstm_videojuegos/assets/Resources/Mapas/MapaCielo.world",
         "C:/Users/Usuario/Desktop/Desarrollo de videojuegos/ohstm_videojuegos/assets/Resources/Mapas/MapaInfierno.world"
     ],
-    "map.height": 18,
+    "map.height": 23,
     "map.lastUsedFormat": "tmx",
-    "map.width": 32,
+    "map.width": 40,
     "openFiles": [
         "Infierno1.1.tmx"
     ],
     "project": "Fondo Cielo.tiled-project",
     "recentFiles": [
+        "Cielo1.7.tmx",
+        "Cielo1.6.tmx",
+        "Cielo1.3.tmx",
+        "Cielo1.10.tmx",
+        "Cielo1.8.tmx",
+        "Cielo1.1.tmx",
+        "Infierno1.1.tmx",
         "MapaCielo.tsx",
         "Infierno1.8.tmx",
-        "Infierno1.1.tmx",
-        "Cielo1.1.tmx",
         "MapaCielo1.75.tmx",
         "MapaCielo1.6.tmx",
-        "MapaCielo1.7.tmx",
-        "Infierno1.13.tmx",
-        "Infierno1.12.tmx",
-        "Infierno1.11.tmx",
-        "Infierno1.10.tmx",
-        "Infierno1.9.tmx"
+        "MapaCielo1.7.tmx"
     ],
     "tileset.embedInMap": true,
     "tileset.lastUsedFormat": "tsx"
