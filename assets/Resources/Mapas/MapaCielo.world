@@ -1,4 +1,76 @@
 {
+    "maps": [
+        {
+            "fileName": "Cielo1.1.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 0,
+            "y": 0
+        },
+        {
+            "fileName": "Cielo1.2.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 1024,
+            "y": 0
+        },
+        {
+            "fileName": "Cielo1.3.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": -1024,
+            "y": 0
+        },
+        {
+            "fileName": "Cielo1.4.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 3072,
+            "y": 0
+        },
+        {
+            "fileName": "Cielo1.5.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 2048,
+            "y": 0
+        },
+        {
+            "fileName": "Cielo1.6.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": -2048,
+            "y": 0
+        },
+        {
+            "fileName": "Cielo1.9.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 1024,
+            "y": 576
+        },
+        {
+            "fileName": "Cielo1.7.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": -3072,
+            "y": 0
+        },
+        {
+            "fileName": "Cielo1.8.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": 0,
+            "y": 576
+        },
+        {
+            "fileName": "Cielo1.10.tmx",
+            "height": 576,
+            "width": 1024,
+            "x": -1024,
+            "y": 576
+        }
+    ],
     "onlyShowAdjacentMaps": false,
     "type": "world"
 }
