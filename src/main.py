@@ -22,6 +22,9 @@ COIN_SCALING = 0.5
 PLAYER_MOVEMENT_SPEED = 5
 GRAVITY = 1
 PLAYER_JUMP_SPEED = 20
+DASH_SPEED = 20
+DASH_DURATION = 0.10
+DASH_COOLDOWN = 0.6
 
 # Constants used to track the direction a character is facing
 RIGHT_FACING = 0
@@ -73,6 +76,12 @@ class PlayerCharacter(Character):
         # --- Double Jump ---
         self.has_double_jump = False
         self.double_jump_available = False
+        # --- Dash ---
+        self.has_dash = False
+        self.dash_available = False
+        self.is_dashing = False
+        self.dash_timer = 0
+        self.dash_cooldown_timer = 0
 
     def update_animation(self, delta_time):
 
@@ -267,6 +276,11 @@ class GameView(arcade.View):
         self.player_sprite = PlayerCharacter()
         # TEMPORAL PARA TEST
         self.player_sprite.has_double_jump = True
+        # TEMPORAL PARA TEST
+        self.player_sprite.has_dash = True
+        self.player_sprite.dash_available = True
+
+
         self.player_sprite.center_x = 128
         self.player_sprite.center_y = 128
         self.scene.add_sprite("Player", self.player_sprite)
@@ -369,25 +383,59 @@ class GameView(arcade.View):
         # Move the player using our physics engine
         self.physics_engine.update()
 
+       # --- DASH UPDATE ---
+        if self.player_sprite.is_dashing:
+
+            # Mantener velocidad constante
+            if self.player_sprite.facing_direction == RIGHT_FACING:
+                self.player_sprite.change_x = DASH_SPEED
+            else:
+                self.player_sprite.change_x = -DASH_SPEED
+
+            # Sin gravedad
+            self.player_sprite.change_y = 0
+
+            # Contador dash
+            self.player_sprite.dash_timer -= delta_time
+
+            # Fin dash
+            if self.player_sprite.dash_timer <= 0:
+
+                self.player_sprite.is_dashing = False
+
+                # Frenar velocidad del dash
+                self.player_sprite.change_x *= 0.3
+
+                # Recalcular movimiento normal
+                self.process_keychange()
+
+        # --- DASH COOLDOWN ---
+        if self.player_sprite.dash_cooldown_timer > 0:
+            self.player_sprite.dash_cooldown_timer -= delta_time
+        else:
+            self.player_sprite.dash_available = True
+
         if self.physics_engine.can_jump():
             self.player_sprite.coyote_timer = 0.12
 
             # Reset doble salto al tocar suelo
             self.player_sprite.double_jump_available = True
+            self.player_sprite.dash_available = True
         else:
             self.player_sprite.coyote_timer = max(
                 0, self.player_sprite.coyote_timer - delta_time
             )
         # --- Better Jump ---
+        if not self.player_sprite.is_dashing:
 
-        # Caída más rápida
-        if self.player_sprite.change_y < 0:
-            self.player_sprite.change_y -= GRAVITY * 0.8
+            # Caída más rápida
+            if self.player_sprite.change_y < 0:
+                self.player_sprite.change_y -= GRAVITY * 0.8
 
-        # Salto variable (si sueltas antes)
-        elif self.player_sprite.change_y > 0:
-            if not self.player_sprite.jump_pressed:
-                self.player_sprite.change_y -= GRAVITY * 1.5
+            # Salto variable
+            elif self.player_sprite.change_y > 0:
+                if not self.player_sprite.jump_pressed:
+                    self.player_sprite.change_y -= GRAVITY * 1.5
 
         # Update our characters animation state
         if self.physics_engine.is_on_ladder():
@@ -505,6 +553,11 @@ class GameView(arcade.View):
         # Here we also handle the case where we have moved down while on a ladder.
         # Coyote Jump is a mechanic that allows the user to have a more permissive jump
         # allowing them to jump even if theres no floor for a couple seconds
+
+        
+        if self.player_sprite.is_dashing:
+            return
+        
         if self.up_pressed and not self.down_pressed:
             if self.physics_engine.is_on_ladder():
                 self.player_sprite.change_y = PLAYER_MOVEMENT_SPEED
@@ -554,6 +607,8 @@ class GameView(arcade.View):
             self.player_sprite.change_x = -PLAYER_MOVEMENT_SPEED
         else:
             self.player_sprite.change_x = 0
+        
+        
 
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed."""
@@ -573,6 +628,29 @@ class GameView(arcade.View):
 
         if key == arcade.key.Q:
             self.shoot_pressed = True
+
+        # --- DASH ---
+        if key == arcade.key.LSHIFT:
+
+            if (
+                self.player_sprite.has_dash
+                and self.player_sprite.dash_available
+                and not self.player_sprite.is_dashing
+            ):
+
+                self.player_sprite.is_dashing = True
+                self.player_sprite.dash_available = False
+                self.player_sprite.dash_timer = DASH_DURATION
+                self.player_sprite.dash_cooldown_timer = DASH_COOLDOWN
+
+                # Dirección del dash
+                if self.player_sprite.facing_direction == RIGHT_FACING:
+                    self.player_sprite.change_x = DASH_SPEED
+                else:
+                    self.player_sprite.change_x = -DASH_SPEED
+
+                # Quitar velocidad vertical
+                self.player_sprite.change_y = 0
 
         self.process_keychange()
 
