@@ -70,6 +70,9 @@ class PlayerCharacter(Character):
         self.should_update_walk = 0
         self.jump_pressed = False
         self.coyote_timer = 0
+        # --- Double Jump ---
+        self.has_double_jump = False
+        self.double_jump_available = False
 
     def update_animation(self, delta_time):
 
@@ -262,6 +265,8 @@ class GameView(arcade.View):
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
 
         self.player_sprite = PlayerCharacter()
+        # TEMPORAL PARA TEST
+        self.player_sprite.has_double_jump = True
         self.player_sprite.center_x = 128
         self.player_sprite.center_y = 128
         self.scene.add_sprite("Player", self.player_sprite)
@@ -364,14 +369,15 @@ class GameView(arcade.View):
         # Move the player using our physics engine
         self.physics_engine.update()
 
-        # --- COYOTE TIME ---
         if self.physics_engine.can_jump():
             self.player_sprite.coyote_timer = 0.12
+
+            # Reset doble salto al tocar suelo
+            self.player_sprite.double_jump_available = True
         else:
             self.player_sprite.coyote_timer = max(
                 0, self.player_sprite.coyote_timer - delta_time
             )
-
         # --- Better Jump ---
 
         # Caída más rápida
@@ -503,8 +509,24 @@ class GameView(arcade.View):
             if self.physics_engine.is_on_ladder():
                 self.player_sprite.change_y = PLAYER_MOVEMENT_SPEED
             elif self.physics_engine.can_jump(y_distance=10) or self.player_sprite.coyote_timer > 0:
+                
+                # Salto normal
                 self.player_sprite.change_y = PLAYER_JUMP_SPEED
                 self.player_sprite.coyote_timer = 0
+
+                arcade.play_sound(self.jump_sound)
+
+            elif (
+                self.player_sprite.has_double_jump
+                and self.player_sprite.double_jump_available
+            ):
+
+                # Doble salto
+                self.player_sprite.change_y = PLAYER_JUMP_SPEED
+
+                # Gastar doble salto
+                self.player_sprite.double_jump_available = False
+
                 arcade.play_sound(self.jump_sound)
         elif self.down_pressed and not self.up_pressed:
             if self.physics_engine.is_on_ladder():
@@ -559,11 +581,14 @@ class GameView(arcade.View):
 
         if key == arcade.key.LEFT or key == arcade.key.A:
             self.left_pressed = False
-            self.player_sprite.jump_pressed = False
+
         elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.right_pressed = False
+
         elif key == arcade.key.UP or key == arcade.key.W:
             self.up_pressed = False
+            self.player_sprite.jump_pressed = False
+
         elif key == arcade.key.DOWN or key == arcade.key.S:
             self.down_pressed = False
 
@@ -610,8 +635,8 @@ if __name__ == "__main__":
     print(f"Project root is: {PROJECT_ROOT}")
 
     # Ejemplo de acceso a un archivo dentro de recursos
-    filetest = PROJECT_ROOT / "assets" / "dialogs.txt"
-    print(f"Test file size: {filetest.stat().st_size} bytes")
+    #filetest = PROJECT_ROOT / "assets" / "dialogs.txt"
+    #print(f"Test file size: {filetest.stat().st_size} bytes")
     
 
     main()
