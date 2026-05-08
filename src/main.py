@@ -25,6 +25,10 @@ PLAYER_JUMP_SPEED = 20
 DASH_SPEED = 20
 DASH_DURATION = 0.10
 DASH_COOLDOWN = 0.6
+WALL_SLIDE_SPEED = -3
+WALL_JUMP_FORCE_X = 10
+WALL_JUMP_FORCE_Y = 18
+WALL_JUMP_LOCK_TIME = 0.2
 
 # Constants used to track the direction a character is facing
 RIGHT_FACING = 0
@@ -82,6 +86,10 @@ class PlayerCharacter(Character):
         self.is_dashing = False
         self.dash_timer = 0
         self.dash_cooldown_timer = 0
+        # --- Wall Jump ---
+        self.has_wall_jump = False
+        self.wall_sliding = False
+        self.wall_jump_lock_timer = 0
 
     def update_animation(self, delta_time):
 
@@ -276,9 +284,12 @@ class GameView(arcade.View):
         self.player_sprite = PlayerCharacter()
         # TEMPORAL PARA TEST
         self.player_sprite.has_double_jump = True
-        # TEMPORAL PARA TEST
+
         self.player_sprite.has_dash = True
         self.player_sprite.dash_available = True
+
+        self.player_sprite.has_wall_jump = True
+
 
 
         self.player_sprite.center_x = 128
@@ -380,8 +391,62 @@ class GameView(arcade.View):
     def on_update(self, delta_time):
         """Movement and Game Logic"""
 
-        # Move the player using our physics engine
-        self.physics_engine.update()
+        # --- WALL JUMP LOCK TIMER ---
+        if self.player_sprite.wall_jump_lock_timer > 0:
+            self.player_sprite.wall_jump_lock_timer -= delta_time
+
+        # --- WALL SLIDE ---
+        self.player_sprite.wall_sliding = False
+
+        if self.player_sprite.has_wall_jump:
+
+            touching_left_wall = False
+            touching_right_wall = False
+
+            # mover temporalmente para comprobar pared izquierda
+            self.player_sprite.center_x -= 2
+            if arcade.check_for_collision_with_list(
+                self.player_sprite,
+                self.scene["Platforms"]
+            ):
+                touching_left_wall = True
+
+            # comprobar pared derecha
+            self.player_sprite.center_x += 4
+            if arcade.check_for_collision_with_list(
+                self.player_sprite,
+                self.scene["Platforms"]
+            ):
+                touching_right_wall = True
+
+            # restaurar posición original
+            self.player_sprite.center_x -= 2
+
+            touching_wall = touching_left_wall or touching_right_wall
+
+            on_ground = self.physics_engine.can_jump()
+
+            moving_down = self.player_sprite.change_y <= 0
+
+            pressing_wall = (
+                (self.left_pressed and self.player_sprite.facing_direction == LEFT_FACING)
+                or
+                (self.right_pressed and self.player_sprite.facing_direction == RIGHT_FACING)
+            )
+
+            if (
+                touching_wall
+                and not on_ground
+                and moving_down
+                and pressing_wall
+                and self.player_sprite.wall_jump_lock_timer <= 0
+            ):
+
+                self.player_sprite.wall_sliding = True
+
+                # Limitar velocidad de caída
+                if self.player_sprite.change_y < WALL_SLIDE_SPEED:
+                    self.player_sprite.change_y = WALL_SLIDE_SPEED
 
        # --- DASH UPDATE ---
         if self.player_sprite.is_dashing:
@@ -467,6 +532,9 @@ class GameView(arcade.View):
                 self.shoot_timer = 0
 
 
+        # Move the player using our physics engine
+        self.physics_engine.update()
+        
         # Actually trigger animation updates. We've added the Background and Coins layer
         # here as well. Our Tiled map has some animated tiles built-in, check out the flags
         # and torches on the map.
@@ -573,7 +641,6 @@ class GameView(arcade.View):
                 self.player_sprite.has_double_jump
                 and self.player_sprite.double_jump_available
             ):
-
                 # Doble salto
                 self.player_sprite.change_y = PLAYER_JUMP_SPEED
 
@@ -581,6 +648,21 @@ class GameView(arcade.View):
                 self.player_sprite.double_jump_available = False
 
                 arcade.play_sound(self.jump_sound)
+            elif self.player_sprite.wall_sliding:
+
+                # Impulso vertical
+                self.player_sprite.change_y = WALL_JUMP_FORCE_Y
+
+                # Impulso horizontal contrario
+                if self.player_sprite.facing_direction == RIGHT_FACING:
+                    self.player_sprite.change_x = -WALL_JUMP_FORCE_X
+                else:
+                    self.player_sprite.change_x = WALL_JUMP_FORCE_X
+
+                arcade.play_sound(self.jump_sound)
+                # Evitar volver a agarrarse instantáneamente
+                self.player_sprite.wall_jump_lock_timer = WALL_JUMP_LOCK_TIME
+
         elif self.down_pressed and not self.up_pressed:
             if self.physics_engine.is_on_ladder():
                 self.player_sprite.change_y = -PLAYER_MOVEMENT_SPEED
@@ -601,6 +683,10 @@ class GameView(arcade.View):
 
         # Now we just handle our horizontal movement, very similar to how we
         # did before, but now just combined in our new function.
+        # Durante wall jump lock no aceptar control horizontal
+        if self.player_sprite.wall_jump_lock_timer > 0:
+            return
+
         if self.right_pressed and not self.left_pressed:
             self.player_sprite.change_x = PLAYER_MOVEMENT_SPEED
         elif self.left_pressed and not self.right_pressed:
