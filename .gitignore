@@ -205,3 +205,51 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Local game configuration
+settings.json
+
+# Saves 
+saves/
+savegames/
+
+# Temporal multimedia files
+*.mp4~
+*.wav~
+*.tmp
+
+# Screenshots or exports
+screenshots/
+recordings/
+
+# Game logs
+logs/
+*.log
+
+# Windows operating system files
+Thumbs.db
+desktop.ini
+
+# Linux Operating system files
+*~
+
+# MacOS Operating System files
+.DS_Store
+
+# VSCode
+.vscode/
+
+# JetBrains / PyCharm
+.idea/
+
+
+# Compiled files Cython/OpenGL
+*.pyd
+
+# Binary
+*.exe
+*.AppImage
+
+# Game builds
+build_game/
+release/
