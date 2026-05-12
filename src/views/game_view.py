@@ -152,11 +152,16 @@ class GameView(arcade.View):
             ladders=self.scene["Ladders"]
         )
 
-        # Initialize our camera, setting a viewport the size of our window.
-        self.camera = arcade.Camera2D()
+        self.camera = arcade.camera.Camera2D()
 
-        # Initialize our gui camera, initial settings are the same as our world camera.
-        self.gui_camera = arcade.Camera2D()
+        self.camera.viewport = arcade.LRBT(
+            0,
+            self.window.width,
+            0,
+            self.window.height
+        )
+
+        self.gui_camera = arcade.camera.Camera2D()
 
         # Reset the score if we should
         if self.reset_score:
@@ -592,6 +597,17 @@ class GameView(arcade.View):
 
         self.process_keychange()
 
+    def on_resize(self, width, height):
+
+        super().on_resize(width, height)
+
+        # Actualizar viewport OpenGL
+        self.window.ctx.viewport = (0, 0, width, height)
+
+        # Actualizar cámaras
+        self.camera.match_window()
+        self.gui_camera.match_window()
+
 
 class GameOverView(arcade.View):
     def on_show_view(self):
@@ -601,8 +617,8 @@ class GameOverView(arcade.View):
         self.clear()
         arcade.draw_text(
             "Game Over - Click to Restart",
-            WINDOW_WIDTH // 2,
-            WINDOW_HEIGHT // 2,
+            self.window.width // 2,
+            self.window.height // 2,
             arcade.color.WHITE,
             30,
             anchor_x="center"
@@ -611,3 +627,23 @@ class GameOverView(arcade.View):
     def on_mouse_press(self, _x, _y, _button, _modifiers):
         game_view = GameView()
         self.window.show_view(game_view)
+
+    def on_resize(self, width, height):
+
+        super().on_resize(width, height)
+
+        self.camera.viewport = arcade.LRBT(
+            0,
+            width,
+            0,
+            height
+        )
+
+        
+        self.gui_camera.viewport = arcade.LRBT(
+            0,
+            width,
+            0,
+            height
+        )
+

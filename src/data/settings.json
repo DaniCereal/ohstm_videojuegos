@@ -1,14 +1,12 @@
 {
-    "music_volume": 0.5,
+    "music_volume": 0.7,
     "voice_volume": 0.5,
     "sfx_volume": 0.7,
     "fullscreen": false,
-
     "key_up": 119,
     "key_down": 115,
     "key_left": 97,
     "key_right": 100,
-
     "key_dash": 65505,
     "key_pause": 65307,
     "key_restart": 114

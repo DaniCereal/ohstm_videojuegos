@@ -13,9 +13,22 @@ from data.settings import SETTINGS
 from views.menu_view import MainMenu
 from constants import *
 
+import os
+os.chdir(Path(__file__).parent)
+
 def main():
     """Main function"""
-    window = arcade.Window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
+    window = arcade.Window(
+        width=WINDOW_WIDTH,
+        height=WINDOW_HEIGHT,
+        title=WINDOW_TITLE,
+        resizable=True,
+        update_rate=1/60
+    )
+
+    window.set_minimum_size(640, 360)
+    window.center_window()
+    window.ctx.viewport = (0, 0, window.width, window.height)
     menu_view = MainMenu()
     window.show_view(menu_view)
     arcade.run()
@@ -35,4 +48,7 @@ if __name__ == "__main__":
     #print(f"Test file size: {filetest.stat().st_size} bytes")
     
     SETTINGS.load()
+    SETTINGS.fullscreen = False
+    SETTINGS.save()
+
     main()

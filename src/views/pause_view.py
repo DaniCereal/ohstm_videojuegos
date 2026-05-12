@@ -2,9 +2,6 @@ import arcade
 
 from views.settings_view import SettingsView
 
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
-
 class PauseMenuView(arcade.View):
     def __init__(self, game_view):
         super().__init__()
@@ -26,14 +23,16 @@ class PauseMenuView(arcade.View):
     def on_draw(self):
         # Dibujamos el juego congelado debajo
         self.game_view.on_draw()
+        screen_width = self.window.width
+        screen_height = self.window.height
 
         # Filtro grisáceo
         arcade.draw_rect_filled(
             arcade.LBWH(
                 0,
                 0,
-                WINDOW_WIDTH,
-                WINDOW_HEIGHT
+                screen_width,
+                screen_height
             ),
             (80, 80, 80, 170),
         )
@@ -43,7 +42,7 @@ class PauseMenuView(arcade.View):
             self.character_texture,
             arcade.LBWH(
                 100,
-                WINDOW_HEIGHT / 2 - 200,
+                screen_height / 2 - 200,
                 self.character_texture.width * 5,
                 self.character_texture.height * 5,
             ),
@@ -52,17 +51,17 @@ class PauseMenuView(arcade.View):
         # Título
         arcade.draw_text(
             "PAUSA",
-            WINDOW_WIDTH * 0.74,
-            WINDOW_HEIGHT - 120,
+            screen_width * 0.74,
+            screen_height - 120,
             arcade.color.WHITE,
             42,
             anchor_x="center",
         )
 
         # Opciones
-        start_y = WINDOW_HEIGHT * 0.60
+        start_y = screen_height * 0.60
         gap = 72
-        x = WINDOW_WIDTH * 0.74
+        x = screen_width * 0.74
 
         for i, (label, _) in enumerate(self.options):
             y = start_y - i * gap
@@ -91,7 +90,7 @@ class PauseMenuView(arcade.View):
 
         arcade.draw_text(
             "↑ ↓ / W S  ·  Enter  ·  Esc",
-            WINDOW_WIDTH * 0.74,
+            screen_width * 0.74,
             70,
             arcade.color.WHITE,
             16,
@@ -118,9 +117,11 @@ class PauseMenuView(arcade.View):
         self.activate_selected()
 
     def _get_option_index_at(self, x, y, default_index):
-        start_y = WINDOW_HEIGHT * 0.60
+        screen_width = self.window.width
+        screen_height = self.window.height
+        start_y = screen_height * 0.60
         gap = 72
-        center_x = WINDOW_WIDTH * 0.74
+        center_x = screen_width * 0.74
         box_w = 380
         box_h = 48
 
@@ -144,7 +145,7 @@ class PauseMenuView(arcade.View):
         self.window.show_view(self.game_view)
 
     def open_settings(self):
-        self.window.show_view(SettingsView(self.game_view))
+        self.window.show_view(SettingsView(self))
 
     def restart_level(self):
         self.game_view.setup()
