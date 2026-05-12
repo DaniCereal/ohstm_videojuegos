@@ -41,7 +41,6 @@ class SettingsView(arcade.View):
         ]
 
         self.conflicting_actions = set()
-        self.show_fullscreen_confirmation = False
 
     def on_draw(self):
         screen_width = self.window.width
@@ -127,39 +126,6 @@ class SettingsView(arcade.View):
                 anchor_x="center"
             )
 
-        if self.show_fullscreen_confirmation:
-            arcade.draw_rect_filled(
-                arcade.LRBT(
-                    screen_width / 2 - 300,
-                    screen_width / 2 + 300,
-                    screen_height / 2 - 100,
-                    screen_height / 2 + 100
-                ),
-                (20, 20, 20, 240)
-            )
-
-            arcade.draw_text(
-                "¿Seguro que quieres cambiar fullscreen?\n\n"
-                "Se reiniciará el nivel.",
-                screen_width / 2,
-                screen_height / 2 + 20,
-                arcade.color.WHITE,
-                22,
-                anchor_x="center",
-                anchor_y="center",
-                multiline=True,
-                width=500
-            )
-
-            arcade.draw_text(
-                "ENTER = Sí   |   ESC = No",
-                screen_width / 2,
-                screen_height / 2 - 55,
-                arcade.color.GRAY,
-                18,
-                anchor_x="center"
-            )
-
     def get_value_text(self, action):
 
         if action == "music":
@@ -206,29 +172,6 @@ class SettingsView(arcade.View):
 
     def on_key_press(self, key, modifiers):
 
-        if self.show_fullscreen_confirmation:
-
-            if key == arcade.key.ENTER:
-
-                SETTINGS.fullscreen = not SETTINGS.fullscreen
-
-                self.window.set_fullscreen(
-                    SETTINGS.fullscreen
-                )
-
-                SETTINGS.save()
-
-                from views.game_view import GameView
-
-                new_game = GameView()
-
-                self.window.show_view(new_game)
-
-            elif key == arcade.key.ESCAPE:
-
-                self.show_fullscreen_confirmation = False
-
-            return
         # REBINDING
         if self.waiting_for_key:
             setattr(
@@ -306,31 +249,71 @@ class SettingsView(arcade.View):
 
         SETTINGS.save()
 
+        # Actualizar volumen realtime
+        if action == "music":
+
+            if hasattr(
+                self.previous_view,
+                "update_music_volume"
+            ):
+
+                self.previous_view.update_music_volume()
+
+        SETTINGS.save()
+
     def activate_option(self):
 
         _, action = self.options[self.selected_index]
 
         if action == "fullscreen":
 
-            self.show_fullscreen_confirmation = True
+            from views.game_view import GameView
+            from views.menu_view import MainMenu
+            from views.pause_view import PauseMenuView
 
+            # Guardar nuevo estado
             SETTINGS.fullscreen = not SETTINGS.fullscreen
-
-            self.window.set_fullscreen(SETTINGS.fullscreen)
-
             SETTINGS.save()
 
+            # Limpiar vistas antiguas
+            if hasattr(self.previous_view, "cleanup"):
+                self.previous_view.cleanup()
 
+            # Cambiar fullscreen
+            self.window.set_fullscreen(SETTINGS.fullscreen)
 
-            # Reiniciar juego para reconstruir cámaras
-            from views.game_view import GameView
+            # FORZAR resize real
+            self.window.dispatch_event(
+                "on_resize",
+                self.window.width,
+                self.window.height
+            )
 
-            new_game = GameView()
+            # ======================
+            # VENIMOS DEL PAUSE
+            # ======================
+            if isinstance(self.previous_view, PauseMenuView):
 
-            self.window.show_view(new_game)
+                old_game = self.previous_view.game_view
+
+                new_game = GameView(level=old_game.level)
+
+                new_game.setup()
+
+                self.window.show_view(new_game)
+
+            # ======================
+            # VENIMOS DEL MENU
+            # ======================
+            elif isinstance(self.previous_view, MainMenu):
+
+                new_menu = MainMenu()
+
+                self.window.show_view(new_menu)
+
+            return
 
         elif action.startswith("key_"):
-
             self.waiting_for_key = action
 
         elif action == "back":
@@ -346,3 +329,9 @@ class SettingsView(arcade.View):
             self.previous_view
         )
         
+    def stop_menu_media(self):
+        if self.video:
+            self.video.release()
+
+        if self.music_player:
+            self.music_player.pause()

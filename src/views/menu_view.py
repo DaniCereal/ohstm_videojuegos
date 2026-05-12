@@ -3,6 +3,12 @@ import arcade
 from constants import *
 from views.settings_view import SettingsView
 
+import cv2
+import arcade
+
+from PIL import Image
+
+from data.settings import SETTINGS
 
 class MainMenu(arcade.View):
 
@@ -12,13 +18,27 @@ class MainMenu(arcade.View):
 
         # TEXTURAS PLACEHOLDER
 
-        self.background = arcade.load_texture(
-            ":resources:images/backgrounds/abstract_1.jpg"
+
+        video_path = "../assets/mp4/Menu_principal.mp4"
+
+        self.video = cv2.VideoCapture(video_path)
+
+        self.music = arcade.load_sound(
+            "../assets/Music/OST/Menu_principal.mp3"
         )
 
-        self.logo = arcade.load_texture(
-            ":resources:images/topdown_tanks/tank_blue.png"
+        self.music_player = self.music.play(
+            volume=SETTINGS.music_volume,
+            loop=True
         )
+
+        self.current_frame_texture = None
+
+        self.logo = arcade.load_texture(
+            "../assets/images/LogoNoBackground.png"
+        )
+
+        
 
         # BOTONES
 
@@ -53,15 +73,16 @@ class MainMenu(arcade.View):
 
         # FONDO
 
-        arcade.draw_texture_rect(
-            self.background,
-            arcade.LBWH(
-                0,
-                0,
-                screen_width,
-                screen_height
+        if self.current_frame_texture:
+            arcade.draw_texture_rect(
+                self.current_frame_texture,
+                arcade.LBWH(
+                    0,
+                    0,
+                    screen_width,
+                    screen_height
+                )
             )
-        )
 
         # Oscurecer un poco
         arcade.draw_rect_filled(
@@ -76,13 +97,13 @@ class MainMenu(arcade.View):
 
         # LOGO
 
-        logo_width = 450
-        logo_height = 220
+        logo_width = screen_width * 0.32
+        logo_height = logo_width * 0.48
 
         arcade.draw_texture_rect(
             self.logo,
             arcade.LBWH(
-                80,
+                30,
                 screen_height - logo_height - 80,
                 logo_width,
                 logo_height
@@ -218,6 +239,7 @@ class MainMenu(arcade.View):
     # ACCIONES
 
     def new_game(self):
+        self.stop_menu_media()
 
         from views.game_view import GameView
 
@@ -230,6 +252,7 @@ class MainMenu(arcade.View):
         self.window.show_view(game)
 
     def continue_game(self):
+        self.stop_menu_media()
 
         if self.current_game_view:
 
@@ -242,11 +265,7 @@ class MainMenu(arcade.View):
             self.new_game()
 
     def settings(self):
-
-        # Menú falso para volver después
-        self.window.show_view(
-            SettingsView(self)
-        )
+        self.window.show_view(SettingsView(self))
 
     def story(self):
 
@@ -257,5 +276,62 @@ class MainMenu(arcade.View):
         print("Créditos")
 
     def exit_game(self):
-
+        self.stop_menu_media()
         arcade.exit()
+
+    def on_update(self, delta_time):
+
+        success, frame = self.video.read()
+
+        # Reiniciar vídeo cuando termina
+        if not success:
+
+            self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+
+            success, frame = self.video.read()
+
+        if success:
+
+            # Convertir BGR -> RGB
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            height, width, _ = frame.shape
+
+            image = Image.fromarray(frame).convert("RGBA")
+
+            self.current_frame_texture = arcade.Texture(
+                image=image
+            )
+            
+    def stop_menu_media(self):
+        if self.video:
+            self.video.release()
+
+        if self.music_player:
+            self.music_player.pause()
+
+    def update_music_volume(self):
+
+        if self.music_player:
+
+            self.music_player.volume = SETTINGS.music_volume
+
+    def cleanup(self):
+        if self.video:
+            self.video.release()
+
+        if self.music_player:
+            self.music_player.pause()
+            self.music_player = None
+    
+    def on_show_view(self):
+        self.window.ctx.viewport = (
+            0,
+            0,
+            self.window.width,
+            self.window.height
+        )
+    
+    def update_music_volume(self):
+        if self.music_player is not None:
+            self.music_player.volume = SETTINGS.music_volume

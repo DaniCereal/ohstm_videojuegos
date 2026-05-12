@@ -17,11 +17,12 @@ class GameView(arcade.View):
     Main application class.
     """
 
-    def __init__(self):
+    def __init__(self, level=1):
 
         # Call the parent class and set up the window
         super().__init__()
 
+        self.level = level
         self.initialized = False
         # Track the current state of our input
         self.left_pressed = False
@@ -187,9 +188,22 @@ class GameView(arcade.View):
         self.window.background_color = self.tile_map.background_color
 
     def on_show_view(self):
+        self.window.ctx.viewport = (
+            0,
+            0,
+            self.window.width,
+            self.window.height
+        )
+
+        if self.camera:
+            self.camera.match_window()
+
+        if self.gui_camera:
+            self.gui_camera.match_window()
+
         if not self.initialized:
             self.setup()
-            self.initialized = True 
+            self.initialized = True
 
     def on_draw(self):
         """Render the screen."""
@@ -331,7 +345,7 @@ class GameView(arcade.View):
 
         if self.can_shoot:
             if self.shoot_pressed:
-                arcade.play_sound(self.shoot_sound)
+                self.play_sfx(self.shoot_sound)
                 bullet = arcade.Sprite(
                     ":resources:images/space_shooter/laserBlue01.png",
                     scaling=0.8,
@@ -422,14 +436,14 @@ class GameView(arcade.View):
 
         for collision in player_collision_list:
             if self.scene["Enemies"] in collision.sprite_lists:
-                arcade.play_sound(self.gameover_sound)
+                self.play_sfx(self.gameover_sound)
                 game_over = GameOverView()
                 self.window.show_view(game_over)
                 return
             else:
                 # Our collision is a coin, remove it
                 collision.remove_from_sprite_lists()
-                arcade.play_sound(self.collect_coin_sound)
+                self.play_sfx(self.collect_coin_sound)
                 self.score += 75
                 self.score_text.text = f"Score: {self.score}"
 
@@ -577,19 +591,18 @@ class GameView(arcade.View):
         self.process_keychange()
 
     def on_key_release(self, key, modifiers):
-        """Called whenever a key is released."""
 
-        if key == arcade.key.LEFT or key == arcade.key.A:
+        if key == SETTINGS.key_left:
             self.left_pressed = False
 
-        elif key == arcade.key.RIGHT or key == arcade.key.D:
+        elif key == SETTINGS.key_right:
             self.right_pressed = False
 
-        elif key == arcade.key.UP or key == arcade.key.W:
+        elif key == SETTINGS.key_up:
             self.up_pressed = False
             self.player_sprite.jump_pressed = False
 
-        elif key == arcade.key.DOWN or key == arcade.key.S:
+        elif key == SETTINGS.key_down:
             self.down_pressed = False
 
         if key == arcade.key.Q:
@@ -605,9 +618,17 @@ class GameView(arcade.View):
         self.window.ctx.viewport = (0, 0, width, height)
 
         # Actualizar cámaras
-        self.camera.match_window()
-        self.gui_camera.match_window()
+        if self.camera:
+            self.camera.match_window()
 
+        if self.gui_camera:
+            self.gui_camera.match_window()
+
+    def play_sfx(self, sound):
+        arcade.play_sound(
+            sound,
+            volume=SETTINGS.sfx_volume
+        )
 
 class GameOverView(arcade.View):
     def on_show_view(self):
@@ -647,3 +668,4 @@ class GameOverView(arcade.View):
             height
         )
 
+ 
