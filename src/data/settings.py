@@ -1,6 +1,8 @@
 import arcade
 import json
+from pathlib import Path
 
+SETTINGS_PATH = Path(__file__).parent / "settings.json"
 
 class GameSettings:
     def __init__(self):
@@ -41,13 +43,13 @@ class GameSettings:
             "key_restart": self.key_restart,
         }
 
-        with open("src/data/settings.json", "w") as file:
+        with open(SETTINGS_PATH, "w") as file:
             json.dump(data, file, indent=4)
 
     def load(self):
 
         try:
-            with open("src/data/settings.json", "r") as file:
+            with open(SETTINGS_PATH, "r") as file:
                 data = json.load(file)
 
             self.music_volume = data["music_volume"]
