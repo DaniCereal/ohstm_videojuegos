@@ -16,7 +16,7 @@ class MiJuego(arcade.Window):
         """ Configura el juego y carga el mapa. """
         
         # 1. Ruta a tu archivo .tmx (NO al .world)
-        ruta_mapa = "Infierno1.2.tmx"  # Asegúrate de que este archivo esté en el mismo directorio o proporciona la ruta correcta
+        ruta_mapa = "Tierra arriba2.tmx"  # Asegúrate de que este archivo esté en el mismo directorio o proporciona la ruta correcta
 
         # 2. Cargar el mapa (scaling permite hacer los gráficos más grandes o pequeños)
         opciones_capas = {
