@@ -253,3 +253,9 @@ desktop.ini
 # Game builds
 build_game/
 release/
+
+*.wav
+
+venv/
+__pycache__/
+*.pyc

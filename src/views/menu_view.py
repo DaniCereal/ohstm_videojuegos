@@ -24,7 +24,7 @@ class MainMenu(arcade.View):
         self.video = cv2.VideoCapture(video_path)
 
         self.music = arcade.load_sound(
-            "../assets/Music/OST/Menu_principal.mp3"
+            "../assets/Music/OST/MenuPrincipal.ogg"
         )
 
         self.music_player = self.music.play(
