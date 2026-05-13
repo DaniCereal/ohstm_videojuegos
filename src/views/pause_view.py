@@ -148,8 +148,11 @@ class PauseMenuView(arcade.View):
         self.window.show_view(SettingsView(self))
 
     def restart_level(self):
-        self.game_view.setup()
-        self.window.show_view(self.game_view)
+        from views.game_view import GameView
+
+        new_game = GameView(level=self.game_view.level)
+
+        self.window.show_view(new_game)
 
     def go_main_menu(self):
         from views.menu_view import MainMenu

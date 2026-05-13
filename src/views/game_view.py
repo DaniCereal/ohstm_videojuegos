@@ -12,18 +12,24 @@ from models.enemy import (
     ZombieEnemy
 )
 
+LEVELS = [
+    "../assets/Mapas/Tierra arriba1.tmx",
+    "../assets/Mapas/Tierra arriba2.tmx"
+]
+
 class GameView(arcade.View):
     """
     Main application class.
     """
 
-    def __init__(self, level=1):
+    def __init__(self, level=1, score=0):
 
         # Call the parent class and set up the window
         super().__init__()
 
         self.level = level
         self.initialized = False
+        self.score = score
         # Track the current state of our input
         self.left_pressed = False
         self.right_pressed = False
@@ -86,15 +92,28 @@ class GameView(arcade.View):
             }
         }
 
-        # Load our TileMap
+        map_path = LEVELS[self.level - 1]
+
         self.tile_map = arcade.load_tilemap(
-            ":resources:tiled_maps/map_with_ladders.json",
+            map_path,
             scaling=TILE_SCALING,
             layer_options=layer_options,
         )
 
         # Create our Scene Based on the TileMap
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
+
+        if "Enemies" not in self.scene:
+            self.scene.add_sprite_list("Enemies")
+
+        if "Coins" not in self.scene:
+            self.scene.add_sprite_list("Coins")
+
+        if "Moving Platforms" not in self.scene:
+            self.scene.add_sprite_list("Moving Platforms")
+
+        if "Ladders" not in self.scene:
+            self.scene.add_sprite_list("Ladders")
 
         self.player_sprite = PlayerCharacter()
         # TEMPORAL PARA TEST
@@ -112,31 +131,69 @@ class GameView(arcade.View):
         self.scene.add_sprite("Player", self.player_sprite)
 
         # -- Enemies
-        enemies_layer = self.tile_map.object_lists["Enemies"]
+        if "Enemies" in self.tile_map.object_lists:
+            enemies_layer = self.tile_map.object_lists["Enemies"]
 
-        for enemy_marker in enemies_layer:
-            coordinates = self.tile_map.get_cartesian(
-                enemy_marker.shape[0], enemy_marker.shape[1]
-            )
-            enemy_type = enemy_marker.properties["type"]
-            if enemy_type == "robot":
-                enemy = RobotEnemy()
-            elif enemy_type == "zombie":
-                enemy = ZombieEnemy()
-            enemy.center_x = math.floor(
-                coordinates[0] * TILE_SCALING * self.tile_map.tile_width
-            )
-            enemy.center_y = math.floor(
-                (coordinates[1] + 1) * (self.tile_map.tile_height * TILE_SCALING)
-            )
-            if "boundary_left" in enemy_marker.properties:
-                enemy.boundary_left = enemy_marker.properties["boundary_left"]
-            if "boundary_right" in enemy_marker.properties:
-                enemy.boundary_right = enemy_marker.properties["boundary_right"]
-            if "change_x" in enemy_marker.properties:
-                enemy.change_x = enemy_marker.properties["change_x"]
+            for enemy_marker in enemies_layer:
 
-            self.scene.add_sprite("Enemies", enemy)
+                coordinates = self.tile_map.get_cartesian(
+                    enemy_marker.shape[0],
+                    enemy_marker.shape[1]
+                )
+
+                enemy_type = enemy_marker.properties["type"]
+
+                if enemy_type == "robot":
+                    enemy = RobotEnemy()
+
+                elif enemy_type == "zombie":
+                    enemy = ZombieEnemy()
+
+                enemy.center_x = math.floor(
+                    coordinates[0]
+                    * TILE_SCALING
+                    * self.tile_map.tile_width
+                )
+
+                enemy.center_y = math.floor(
+                    (coordinates[1] + 1)
+                    * (self.tile_map.tile_height * TILE_SCALING)
+                )
+
+                if "boundary_left" in enemy_marker.properties:
+                    enemy.boundary_left = enemy_marker.properties["boundary_left"]
+
+                if "boundary_right" in enemy_marker.properties:
+                    enemy.boundary_right = enemy_marker.properties["boundary_right"]
+
+                if "change_x" in enemy_marker.properties:
+                    enemy.change_x = enemy_marker.properties["change_x"]
+
+                self.scene.add_sprite("Enemies", enemy)
+
+                for enemy_marker in enemies_layer:
+                    coordinates = self.tile_map.get_cartesian(
+                        enemy_marker.shape[0], enemy_marker.shape[1]
+                    )
+                    enemy_type = enemy_marker.properties["type"]
+                    if enemy_type == "robot":
+                        enemy = RobotEnemy()
+                    elif enemy_type == "zombie":
+                        enemy = ZombieEnemy()
+                    enemy.center_x = math.floor(
+                        coordinates[0] * TILE_SCALING * self.tile_map.tile_width
+                    )
+                    enemy.center_y = math.floor(
+                        (coordinates[1] + 1) * (self.tile_map.tile_height * TILE_SCALING)
+                    )
+                    if "boundary_left" in enemy_marker.properties:
+                        enemy.boundary_left = enemy_marker.properties["boundary_left"]
+                    if "boundary_right" in enemy_marker.properties:
+                        enemy.boundary_right = enemy_marker.properties["boundary_right"]
+                    if "change_x" in enemy_marker.properties:
+                        enemy.change_x = enemy_marker.properties["change_x"]
+
+                    self.scene.add_sprite("Enemies", enemy)
 
         # Create a Platformer Physics Engine, this will handle moving our
         # player as well as collisions between the player sprite and
@@ -450,6 +507,10 @@ class GameView(arcade.View):
         # Center our camera on the player
         self.camera.position = self.player_sprite.position
 
+        # Pasar de nivel
+        if self.player_sprite.center_x >= self.end_of_map - 200:
+            self.next_level()
+
     def process_keychange(self):
         # First handle the case where we have moved up. This needs to be handled
         # differently to move the player upwards if they are on a ladder, or
@@ -552,7 +613,8 @@ class GameView(arcade.View):
             return
 
         if key == SETTINGS.key_restart:
-            self.setup()
+            new_game = GameView(level=self.level)
+            self.window.show_view(new_game)
             return
 
         if key == SETTINGS.key_up:
@@ -668,4 +730,16 @@ class GameOverView(arcade.View):
             height
         )
 
- 
+    def next_level(self):
+
+        next_level_number = self.level + 1
+
+        # Si no hay más niveles
+        if next_level_number > len(LEVELS):
+            print("Juego completado")
+            return
+
+        # Crear nuevo nivel
+        new_game = GameView(level=next_level_number, score=self.score)
+
+        self.window.show_view(new_game)
