@@ -1,18 +1,11 @@
 {
     "maps": [
         {
-            "fileName": "Tierra arriba1.tmx",
-            "height": 736,
-            "width": 1216,
-            "x": 0,
-            "y": 0
-        },
-        {
             "fileName": "Tierra arriba2.tmx",
             "height": 736,
             "width": 1216,
-            "x": 1216,
-            "y": 0
+            "x": 1221,
+            "y": 15
         },
         {
             "fileName": "Tierra arriba3.tmx",
@@ -31,9 +24,9 @@
         {
             "fileName": "Tierra arriba5.tmx",
             "height": 736,
-            "width": 1254,
-            "x": -1256,
-            "y": -10
+            "width": 1216,
+            "x": -1230,
+            "y": 27
         },
         {
             "fileName": "Tierra arriba6.tmx",
@@ -46,22 +39,22 @@
             "fileName": "Tierra abajo1.tmx",
             "height": 736,
             "width": 1216,
-            "x": 0,
-            "y": 736
+            "x": 6,
+            "y": 747
         },
         {
             "fileName": "Tierra abajo2.tmx",
             "height": 736,
             "width": 1216,
-            "x": 1209,
-            "y": 728
+            "x": 1218,
+            "y": 733
         },
         {
             "fileName": "Tierra abajo3.tmx",
             "height": 736,
             "width": 1216,
-            "x": 2425,
-            "y": 728
+            "x": 2436,
+            "y": 734
         },
         {
             "fileName": "Tierra abajo4.tmx",
@@ -81,8 +74,71 @@
             "fileName": "Infierno arriba2.tmx",
             "height": 736,
             "width": 1216,
-            "x": 3641,
-            "y": 728
+            "x": 3652,
+            "y": 736
+        },
+        {
+            "fileName": "Tierra arriba1.tmx",
+            "height": 736,
+            "width": 1216,
+            "x": -6,
+            "y": 15
+        },
+        {
+            "fileName": "Infiernoarriba3.tmx",
+            "height": 736,
+            "width": 1216,
+            "x": 4868,
+            "y": 736
+        },
+        {
+            "fileName": "Infiernoarriba4.tmx",
+            "height": 736,
+            "width": 1216,
+            "x": 6088,
+            "y": 1476
+        },
+        {
+            "fileName": "Infiernoabajo1.tmx",
+            "height": 736,
+            "width": 1216,
+            "x": 6086,
+            "y": 2218
+        },
+        {
+            "fileName": "Infiernoabajo2.tmx",
+            "height": 736,
+            "width": 1216,
+            "x": 4868,
+            "y": 2218
+        },
+        {
+            "fileName": "Infiernoabajo3.tmx",
+            "height": 736,
+            "width": 1216,
+            "x": 3652,
+            "y": 2218
+        },
+        {
+            "fileName": "Infiernoabajo4.tmx",
+            "height": 736,
+            "width": 1216,
+            "x": 3668,
+            "y": 1478
+        },
+        {
+            "fileName": "Infiernoabajo5.tmx",
+            "height": 736,
+            "width": 1216,
+            "x": 2431,
+            "y": 2221
+        },
+        {
+            "fileName": "Infiernoabajo6.tmx",
+            "height": 736,
+            "width": 1216,
+            "x": 1214,
+            "y": 2206
         }
     ],
     "onlyShowAdjacentMaps": false,
