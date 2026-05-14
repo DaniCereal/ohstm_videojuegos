@@ -25,8 +25,8 @@
             "fileName": "Tierra arriba5.tmx",
             "height": 736,
             "width": 1216,
-            "x": -1216,
-            "y": 0
+            "x": -1230,
+            "y": 27
         },
         {
             "fileName": "Tierra arriba6.tmx",
@@ -81,8 +81,8 @@
             "fileName": "Tierra arriba1.tmx",
             "height": 736,
             "width": 1216,
-            "x": 6,
-            "y": 11
+            "x": -6,
+            "y": 15
         },
         {
             "fileName": "Infiernoarriba3.tmx",
