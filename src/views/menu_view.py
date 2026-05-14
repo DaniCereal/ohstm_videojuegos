@@ -1,242 +1,178 @@
 import arcade
-
-from constants import *
-from views.settings_view import SettingsView
-
 import cv2
-import arcade
-
 from PIL import Image
+from pathlib import Path
+import sys
+
+SRC_DIR = Path(__file__).resolve().parents[1]
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 from data.settings import SETTINGS
+from views.credits_view import CreditsView
+from views.settings_view import SettingsView
+
 
 class MainMenu(arcade.View):
-
     def __init__(self):
-
         super().__init__()
 
-        # TEXTURAS PLACEHOLDER
-
-
-        video_path = "../assets/mp4/Menu_principal.mp4"
-
-        self.video = cv2.VideoCapture(video_path)
-
-        self.music = arcade.load_sound(
-            "../assets/Music/OST/MenuPrincipal.ogg"
-        )
-
+        self.video = cv2.VideoCapture("../assets/mp4/Menu_principal.mp4")
+        self.music = arcade.load_sound("../assets/Music/OST/MenuPrincipal.ogg")
         self.music_player = self.music.play(
             volume=SETTINGS.music_volume,
-            loop=True
+            loop=True,
         )
 
         self.current_frame_texture = None
-
-        self.logo = arcade.load_texture(
-            "../assets/images/LogoNoBackground.png"
-        )
-
-        
-
-        # BOTONES
+        self.font_name = "Garamond"
+        self.logo = arcade.load_texture("../assets/images/LogoNoBackground.png")
+        self.fade_texture = self._create_fade_texture()
 
         self.selected_index = 0
-
         self.buttons = [
-
             ("Nueva Partida", self.new_game),
-
             ("Jugar", self.continue_game),
-
             ("Historia", self.story),
-
             ("Ajustes", self.settings),
-
-            ("Créditos", self.credits),
-
+            ("Creditos", self.credits),
             ("Salir", self.exit_game),
         ]
 
-        # Guarda partida actual
         self.current_game_view = None
 
-    # DRAW
+    def on_show_view(self):
+        self.window.ctx.viewport = (0, 0, self.window.width, self.window.height)
 
     def on_draw(self):
-
         self.clear()
 
-        screen_width = self.window.width
-        screen_height = self.window.height
-
-        # FONDO
+        width = self.window.width
+        height = self.window.height
 
         if self.current_frame_texture:
             arcade.draw_texture_rect(
                 self.current_frame_texture,
-                arcade.LBWH(
-                    0,
-                    0,
-                    screen_width,
-                    screen_height
-                )
+                arcade.LBWH(0, 0, width, height),
             )
+        else:
+            arcade.draw_rect_filled(arcade.LBWH(0, 0, width, height), (10, 14, 24))
 
-        # Oscurecer un poco
-        arcade.draw_rect_filled(
-            arcade.LBWH(
-                0,
-                0,
-                screen_width,
-                screen_height
-            ),
-            (0, 0, 0, 120)
+        self._draw_atmosphere(width, height)
+        self._draw_menu_panel(width, height)
+        self._draw_logo(width, height)
+        self._draw_buttons(width, height)
+
+    def _draw_atmosphere(self, width, height):
+        arcade.draw_rect_filled(arcade.LBWH(0, 0, width, height), (7, 10, 18, 74))
+        arcade.draw_rect_filled(arcade.LBWH(0, 0, width, height * 0.18), (34, 20, 24, 60))
+
+    def _draw_menu_panel(self, width, height):
+        fade_width = min(590, width * 0.52)
+        arcade.draw_texture_rect(
+            self.fade_texture,
+            arcade.LBWH(0, 0, fade_width, height),
         )
 
-        # LOGO
-
-        logo_width = screen_width * 0.32
+    def _draw_logo(self, width, height):
+        center_x = self._menu_center_x(width)
+        logo_width = min(width * 0.32, 470)
         logo_height = logo_width * 0.48
+        logo_x = center_x - logo_width / 2
+        logo_y = height - logo_height - 58
 
         arcade.draw_texture_rect(
             self.logo,
-            arcade.LBWH(
-                30,
-                screen_height - logo_height - 80,
-                logo_width,
-                logo_height
-            )
+            arcade.LBWH(logo_x, logo_y, logo_width, logo_height),
         )
 
-        # BOTONES
+    def _draw_buttons(self, width, height):
+        start_y = height * 0.53
+        gap = 58
+        x = self._menu_center_x(width)
 
-        start_y = screen_height * 0.55
-
-        gap = 70
-
-        x = 250
-
-        for i, (label, _) in enumerate(self.buttons):
-
+        for i, (label, _action) in enumerate(self.buttons):
             y = start_y - i * gap
+            self._draw_button(label, x, y, i == self.selected_index)
 
-            selected = i == self.selected_index
+    def _menu_center_x(self, width):
+        return min(300, width * 0.2)
 
-            # Fondo botón seleccionado
-            if selected:
+    def _create_fade_texture(self):
+        fade_width = 256
+        image = Image.new("RGBA", (fade_width, 1))
 
-                arcade.draw_rect_filled(
-                    arcade.LRBT(
-                        x - 170,
-                        x + 170,
-                        y - 25,
-                        y + 25
-                    ),
-                    (255, 255, 255, 40)
-                )
+        for x in range(fade_width):
+            progress = x / (fade_width - 1)
+            alpha = int(164 * (1 - progress) ** 1.9)
+            image.putpixel((x, 0), (8, 10, 17, alpha))
 
-            arcade.draw_text(
-                label,
-                x,
-                y,
-                arcade.color.WHITE
-                if not selected
-                else arcade.color.GOLD,
-                28,
-                anchor_x="center",
-                anchor_y="center"
+        return arcade.Texture(image=image)
+
+    def _draw_button(self, label, x, y, selected):
+        width = 330
+        height = 42
+
+        if selected:
+            arcade.draw_rect_filled(
+                arcade.LRBT(x - width / 2, x + width / 2, y - height / 2, y + height / 2),
+                (12, 16, 24, 42),
             )
-
-        # TEXTO ABAJO
+            arcade.draw_rect_outline(
+                arcade.LRBT(x - width / 2, x + width / 2, y - height / 2, y + height / 2),
+                (199, 150, 69, 150),
+                2,
+            )
 
         arcade.draw_text(
-            "↑ ↓  ·  ENTER",
-            screen_width - 120,
-            30,
-            arcade.color.WHITE,
-            16,
-            anchor_x="center"
+            label,
+            x,
+            y,
+            (255, 247, 220) if selected else (222, 214, 190),
+            26 if selected else 24,
+            anchor_x="center",
+            anchor_y="center",
+            font_name=self.font_name,
+            bold=False,
         )
 
-    # INPUT
-
     def on_key_press(self, key, modifiers):
-
         if key in (arcade.key.UP, arcade.key.W):
-
-            self.selected_index -= 1
-
-            if self.selected_index < 0:
-                self.selected_index = len(self.buttons) - 1
-
+            self.selected_index = (self.selected_index - 1) % len(self.buttons)
         elif key in (arcade.key.DOWN, arcade.key.S):
-
-            self.selected_index += 1
-
-            if self.selected_index >= len(self.buttons):
-                self.selected_index = 0
-
+            self.selected_index = (self.selected_index + 1) % len(self.buttons)
         elif key in (arcade.key.ENTER, arcade.key.SPACE):
-
             self.activate_selected()
 
     def on_mouse_motion(self, x, y, dx, dy):
-
-        self.selected_index = self.get_button_at(
-            x,
-            y,
-            self.selected_index
-        )
+        self.selected_index = self.get_button_at(x, y, self.selected_index)
 
     def on_mouse_press(self, x, y, button, modifiers):
-
-        self.selected_index = self.get_button_at(
-            x,
-            y,
-            self.selected_index
-        )
-
+        self.selected_index = self.get_button_at(x, y, self.selected_index)
         self.activate_selected()
 
-    # BOTONES
-
     def get_button_at(self, x, y, default):
-
-        start_y = self.window.height * 0.55
-
-        gap = 70
-
-        center_x = 250
-
-        width = 340
-
-        height = 50
+        start_y = self.window.height * 0.53
+        gap = 58
+        center_x = self._menu_center_x(self.window.width)
+        width = 330
+        height = 42
 
         for i in range(len(self.buttons)):
-
             option_y = start_y - i * gap
-
             left = center_x - width / 2
             right = center_x + width / 2
-
             bottom = option_y - height / 2
             top = option_y + height / 2
 
             if left <= x <= right and bottom <= y <= top:
-
                 return i
 
         return default
 
     def activate_selected(self):
-
-        _, action = self.buttons[self.selected_index]
-
+        _label, action = self.buttons[self.selected_index]
         action()
-
-    # ACCIONES
 
     def new_game(self):
         self.stop_menu_media()
@@ -244,65 +180,42 @@ class MainMenu(arcade.View):
         from views.game_view import GameView
 
         game = GameView()
-
         game.setup()
-
         self.current_game_view = game
-
         self.window.show_view(game)
 
     def continue_game(self):
         self.stop_menu_media()
 
         if self.current_game_view:
-
-            self.window.show_view(
-                self.current_game_view
-            )
-
+            self.window.show_view(self.current_game_view)
         else:
-
             self.new_game()
 
     def settings(self):
         self.window.show_view(SettingsView(self))
 
     def story(self):
-
         print("Historia")
 
     def credits(self):
-
-        print("Créditos")
+        self.window.show_view(CreditsView(self))
 
     def exit_game(self):
         self.stop_menu_media()
         arcade.exit()
 
     def on_update(self, delta_time):
-
         success, frame = self.video.read()
-
-        # Reiniciar vídeo cuando termina
         if not success:
-
             self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
-
             success, frame = self.video.read()
 
         if success:
-
-            # Convertir BGR -> RGB
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-            height, width, _ = frame.shape
-
             image = Image.fromarray(frame).convert("RGBA")
+            self.current_frame_texture = arcade.Texture(image=image)
 
-            self.current_frame_texture = arcade.Texture(
-                image=image
-            )
-            
     def stop_menu_media(self):
         if self.video:
             self.video.release()
@@ -311,9 +224,7 @@ class MainMenu(arcade.View):
             self.music_player.pause()
 
     def update_music_volume(self):
-
-        if self.music_player:
-
+        if self.music_player is not None:
             self.music_player.volume = SETTINGS.music_volume
 
     def cleanup(self):
@@ -323,15 +234,3 @@ class MainMenu(arcade.View):
         if self.music_player:
             self.music_player.pause()
             self.music_player = None
-    
-    def on_show_view(self):
-        self.window.ctx.viewport = (
-            0,
-            0,
-            self.window.width,
-            self.window.height
-        )
-    
-    def update_music_volume(self):
-        if self.music_player is not None:
-            self.music_player.volume = SETTINGS.music_volume

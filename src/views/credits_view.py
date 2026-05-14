@@ -1,0 +1,241 @@
+import arcade
+
+from data.settings import SETTINGS
+
+
+class CreditsView(arcade.View):
+    """
+    Vista de creditos con scroll vertical estilo pelicula.
+    """
+
+    def __init__(self, previous_view):
+        super().__init__()
+        self.previous_view = previous_view
+        self.music = arcade.load_sound("../assets/Music/OST/MusicaCreditos.ogg")
+        self.music_player = None
+        self.fade_duration = 1.4
+        self.fade_elapsed = 0
+        self.fading_in = False
+        self.returning_to_menu = False
+
+        self.scroll_speed = 55
+        self.line_spacing = 48
+        self.top_margin = 120
+        self.font_name = "Georgia"
+        self.ink = (10, 14, 24)
+        self.bone = (246, 239, 216)
+        self.gold = (199, 150, 69)
+        self.sky = (132, 190, 213)
+        self.underworld = (176, 63, 45)
+        self.scroll_offset = 0
+        self.scroll_finished = False
+
+        self.credits_text = [
+            ("OH HERMES SEND THE MESSAGE", "title"),
+            ("", "space"),
+            ("DESARROLLO", "section"),
+            ("Programador: Daniel Silva Moratilla", "normal"),
+            ("Disenadores: Brayan Cotoara Moya & Luis Azana Soriano", "normal"),
+            ("Artista: Daniel Cordos Iloie", "normal"),
+            ("", "space"),
+            ("ASSETS", "section"),
+            ("Sprites: [Fuente de sprites]", "normal"),
+            ("Musica: Suno & Audacity", "normal"),
+            ("Efectos de sonido: Suno", "normal"),
+            ("Video: [Fuente de video]", "normal"),
+            ("", "space"),
+            ("TECNOLOGIAS", "section"),
+            ("Motor: Arcade Python Library", "normal"),
+            ("Lenguaje: Python 3.12", "normal"),
+            ("", "space"),
+            ("AGRADECIMIENTOS", "section"),
+            ("Tutorial base: arcade.academy", "normal"),
+            ("Comunidad Python Gaming", "normal"),
+            ("Familia y amigos por el apoyo", "normal"),
+            ("", "space"),
+            ("AGRADECIMIENTOS ESPECIALES", "section"),
+            ("David Francisco Barrero", "normal"),
+            ("[Otro agradecimiento]", "normal"),
+            ("", "space"),
+            ("Version: 1.0.0", "small"),
+            ("2024 [Tu Nombre Aqui]", "small"),
+            ("", "space"),
+            ("FIN DE LOS CREDITOS", "final"),
+        ]
+
+        self.total_scroll_height = self._calculate_total_height()
+
+    def _calculate_total_height(self):
+        total = 0
+        for line, _style in self.credits_text:
+            total += self.line_spacing * (0.75 if line == "" else 1)
+        return total
+
+    def _line_style(self, style):
+        if style == "title":
+            return self.bone, 40, True
+        if style == "section":
+            return self.sky, 30, True
+        if style == "final":
+            return self.gold, 34, True
+        if style == "small":
+            return (210, 190, 145), 20, False
+        return self.bone, 24, False
+
+    def on_show_view(self):
+        self.window.ctx.viewport = (0, 0, self.window.width, self.window.height)
+        self.scroll_offset = 0
+        self.scroll_finished = False
+        self.fade_elapsed = 0
+        self.fading_in = True
+        self.returning_to_menu = False
+        self._set_previous_volume(SETTINGS.music_volume)
+        self.music_player = self.music.play(volume=0, loop=True)
+
+    def on_draw(self):
+        self.clear()
+
+        width = self.window.width
+        height = self.window.height
+
+        self._draw_background(width, height)
+
+        start_y = -self.top_margin + self.scroll_offset
+        current_y = start_y
+
+        for line, style in self.credits_text:
+            if line == "":
+                current_y -= self.line_spacing * 0.75
+                continue
+
+            if -80 <= current_y <= height + 80:
+                color, font_size, bold = self._line_style(style)
+                arcade.draw_text(
+                    line,
+                    width / 2,
+                    current_y,
+                    color,
+                    font_size,
+                    anchor_x="center",
+                    anchor_y="center",
+                    font_name=self.font_name,
+                    bold=bold,
+                )
+
+            current_y -= self.line_spacing
+
+        arcade.draw_rect_filled(arcade.LBWH(0, 0, width, 70), (10, 14, 24, 130))
+        arcade.draw_text(
+            "ESC PARA VOLVER",
+            width / 2,
+            28,
+            (210, 190, 145, 125),
+            16,
+            anchor_x="center",
+            anchor_y="center",
+            font_name=self.font_name,
+        )
+
+        overlay_alpha = self._transition_overlay_alpha()
+        if overlay_alpha > 0:
+            arcade.draw_rect_filled(
+                arcade.LBWH(0, 0, width, height),
+                (0, 0, 0, overlay_alpha),
+            )
+
+    def _draw_background(self, width, height):
+        arcade.draw_rect_filled(arcade.LBWH(0, 0, width, height), self.ink)
+        arcade.draw_rect_filled(arcade.LBWH(0, 0, width, height), (0, 0, 0, 70))
+        arcade.draw_rect_filled(arcade.LBWH(0, 0, width, height * 0.16), (28, 18, 22, 58))
+
+        arcade.draw_line(80, height - 86, width - 80, height - 86, (199, 150, 69, 50), 1)
+        arcade.draw_line(80, 86, width - 80, 86, (199, 150, 69, 36), 1)
+
+    def on_update(self, delta_time):
+        self._update_music_transition(delta_time)
+
+        if self.scroll_finished:
+            return
+
+        self.scroll_offset += self.scroll_speed * delta_time
+
+        last_line_y = -self.top_margin + self.scroll_offset - self.total_scroll_height
+        if last_line_y > self.window.height + 80:
+            self.scroll_finished = True
+
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.ESCAPE and not self.returning_to_menu:
+            self.go_back()
+
+    def on_resize(self, width, height):
+        super().on_resize(width, height)
+        self.window.ctx.viewport = (0, 0, width, height)
+
+    def _update_music_transition(self, delta_time):
+        if not self.fading_in and not self.returning_to_menu:
+            return
+
+        self.fade_elapsed += delta_time
+        progress = min(self.fade_elapsed / self.fade_duration, 1)
+        target_volume = SETTINGS.music_volume
+
+        if self.fading_in:
+            self._set_previous_volume(target_volume * (1 - progress))
+            self._set_credits_volume(target_volume * progress)
+
+            if progress >= 1:
+                self.fading_in = False
+                self._pause_previous_music()
+                self._set_credits_volume(target_volume)
+
+        elif self.returning_to_menu:
+            self._set_credits_volume(target_volume * (1 - progress))
+            self._set_previous_volume(target_volume * progress)
+
+            if progress >= 1:
+                self._stop_music()
+                self._set_previous_volume(target_volume)
+                self.window.show_view(self.previous_view)
+
+    def _transition_overlay_alpha(self):
+        progress = min(self.fade_elapsed / self.fade_duration, 1)
+
+        if self.fading_in:
+            return int(220 * (1 - progress))
+        if self.returning_to_menu:
+            return int(240 * progress)
+        return 0
+
+    def _previous_player(self):
+        return getattr(self.previous_view, "music_player", None)
+
+    def _pause_previous_music(self):
+        previous_player = self._previous_player()
+        if previous_player is not None:
+            previous_player.pause()
+
+    def _play_previous_music(self):
+        previous_player = self._previous_player()
+        if previous_player is not None:
+            previous_player.play()
+
+    def _set_previous_volume(self, volume):
+        previous_player = self._previous_player()
+        if previous_player is not None:
+            previous_player.volume = volume
+
+    def _set_credits_volume(self, volume):
+        if self.music_player is not None:
+            self.music_player.volume = volume
+
+    def _stop_music(self):
+        if self.music_player is not None:
+            self.music_player.pause()
+            self.music_player = None
+
+    def go_back(self):
+        self.fade_elapsed = 0
+        self.fading_in = False
+        self.returning_to_menu = True
+        self._play_previous_music()
+        self._set_previous_volume(0)
