@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <template>
- <object name="Suelo" type="Suelo">
-  <properties>
-   <property name="Suelo" type="bool" value="false"/>
-  </properties>
-  <polygon points="0,0 -1,-11 574,-10 1213.5,-12.5 1214.5,-1.5 774.5,0.5 646.5,-2 13,-1.5"/>
+ <object name="Suelo">
+  <polygon points="0,0 31.75,-0.25 32.25,8 0.5,7.5"/>
  </object>
 </template>

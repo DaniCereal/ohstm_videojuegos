@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object name="Plataforma1" type="Suelo">
+  <properties>
+   <property name="Colision" type="bool" value="true"/>
+  </properties>
+  <polygon points="0,0 20,-21.3333 42.6667,-21.3333 56,-9.33333 54.6667,-2.66667"/>
+ </object>
+</template>

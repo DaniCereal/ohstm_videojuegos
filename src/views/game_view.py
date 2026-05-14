@@ -5,6 +5,8 @@ from data.settings import SETTINGS
 
 from constants import *
 
+from data.settings import SETTINGS
+import cv2
 from models.player import PlayerCharacter
 
 from models.enemy import (
