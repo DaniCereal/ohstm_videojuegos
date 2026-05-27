@@ -15,7 +15,7 @@ class PlayerCharacter(Character):
         )
 
         static_texture = arcade.load_texture(
-            "../assets/Sprites/Estatico.png"
+            "../assets/Sprites/Movimiento/Movimiento_1.png"
         )
 
         self.texture_pair = (
