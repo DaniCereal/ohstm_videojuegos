@@ -110,30 +110,16 @@ class MainMenu(arcade.View):
         return arcade.Texture(image=image)
 
     def _draw_button(self, label, x, y, selected):
-        width = 330
-        height = 42
-
-        if selected:
-            arcade.draw_rect_filled(
-                arcade.LRBT(x - width / 2, x + width / 2, y - height / 2, y + height / 2),
-                (12, 16, 24, 42),
-            )
-            arcade.draw_rect_outline(
-                arcade.LRBT(x - width / 2, x + width / 2, y - height / 2, y + height / 2),
-                (199, 150, 69, 150),
-                2,
-            )
-
         arcade.draw_text(
             label,
             x,
             y,
-            (255, 247, 220) if selected else (222, 214, 190),
-            26 if selected else 24,
+            (255, 255, 255) if selected else (190, 182, 162),
+            32 if selected else 26,
             anchor_x="center",
             anchor_y="center",
             font_name=self.font_name,
-            bold=False,
+            bold=selected,
         )
 
     def on_key_press(self, key, modifiers):

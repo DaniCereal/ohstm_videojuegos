@@ -1450,16 +1450,13 @@ class GameOverView(arcade.View):
         bottom, top   = y - bh / 2, y + bh / 2
         self.button_hitboxes.append((index, left, right, bottom, top))
 
-        if selected:
-            arcade.draw_rect_filled(arcade.LRBT(left, right, bottom, top), (12, 16, 24, 42))
-            arcade.draw_rect_outline(arcade.LRBT(left, right, bottom, top), (199, 150, 69, 150), 2)
-
         arcade.draw_text(
             label, x, y,
-            (255, 247, 220) if selected else (222, 214, 190),
-            23 if selected else 21,
+            (255, 255, 255) if selected else (190, 182, 162),
+            28 if selected else 22,
             anchor_x="center", anchor_y="center",
             font_name=self.font_name,
+            bold=selected,
         )
 
     # ------------------------------------------------------------------ #

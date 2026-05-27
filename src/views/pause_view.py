@@ -108,26 +108,16 @@ class PauseMenuView(arcade.View):
 
         self.button_hitboxes.append((index, left, right, bottom, top))
 
-        if selected:
-            arcade.draw_rect_filled(
-                arcade.LRBT(left, right, bottom, top),
-                (12, 16, 24, 42),
-            )
-            arcade.draw_rect_outline(
-                arcade.LRBT(left, right, bottom, top),
-                (199, 150, 69, 150),
-                2,
-            )
-
         arcade.draw_text(
             label,
             x,
             y,
-            (255, 247, 220) if selected else (222, 214, 190),
-            26 if selected else 24,
+            (255, 255, 255) if selected else (190, 182, 162),
+            32 if selected else 26,
             anchor_x="center",
             anchor_y="center",
             font_name=self.font_name,
+            bold=selected,
         )
 
     def on_key_press(self, key, modifiers):
