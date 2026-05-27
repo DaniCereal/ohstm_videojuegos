@@ -14,9 +14,15 @@ class PlayerCharacter(Character):
         super().__init__(
         )
 
-        self.texture = arcade.load_texture(
+        static_texture = arcade.load_texture(
             "../assets/Sprites/Estatico.png"
         )
+
+        self.texture_pair = (
+            static_texture,
+            static_texture.flip_left_right()
+        )
+        self.texture = self.texture_pair[RIGHT_FACING]
 
         self.scale = 1
 
@@ -39,7 +45,6 @@ class PlayerCharacter(Character):
         self.wall_jump_lock_timer = 0
 
     def update_animation(self, delta_time):
-        pass
         if (
             self.change_x < 0
             and self.facing_direction == RIGHT_FACING
@@ -52,58 +57,4 @@ class PlayerCharacter(Character):
         ):
             self.facing_direction = RIGHT_FACING
 
-        if self.climbing and abs(self.change_y) > 1:
-
-            self.cur_texture += 1
-
-            if self.cur_texture > 7:
-                self.cur_texture = 0
-
-        if self.climbing:
-
-            self.texture = self.climbing_textures[
-                self.cur_texture // 4
-            ]
-
-            return
-
-        if self.change_y > 0 and not self.climbing:
-
-            self.texture = self.jump_texture_pair[
-                self.facing_direction
-            ]
-
-            return
-
-        elif self.change_y < 0 and not self.climbing:
-
-            self.texture = self.fall_texture_pair[
-                self.facing_direction
-            ]
-
-            return
-
-        if self.change_x == 0:
-
-            self.texture = self.idle_texture_pair[
-                self.facing_direction
-            ]
-
-            return
-
-        if self.should_update_walk == 3:
-
-            self.cur_texture += 1
-
-            if self.cur_texture > 7:
-                self.cur_texture = 0
-
-            self.texture = self.walk_textures[
-                self.cur_texture
-            ][self.facing_direction]
-
-            self.should_update_walk = 0
-
-            return
-
-        self.should_update_walk += 1
+        self.texture = self.texture_pair[self.facing_direction]
