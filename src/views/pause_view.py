@@ -150,7 +150,13 @@ class PauseMenuView(arcade.View):
     def restart_level(self):
         from views.game_view import GameView
 
-        new_game = GameView(level=self.game_view.level)
+        new_game = GameView(
+            level=self.game_view.level,
+            score=self.game_view.score,
+            lives=self.game_view.lives,
+            room_position=self.game_view.current_room,
+            entry_side=self.game_view.entry_side,
+        )
 
         self.window.show_view(new_game)
 

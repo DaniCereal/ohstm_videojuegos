@@ -1,6 +1,13 @@
 import arcade
 import math
 
+from data.savegame import (
+    DEFAULT_ENTRY_SIDE,
+    DEFAULT_ROOM,
+    MAX_LIVES,
+    load_save,
+    save_game
+)
 from data.settings import SETTINGS
 
 from constants import *
@@ -12,21 +19,102 @@ from models.enemy import (
     ZombieEnemy
 )
 
-LEVELS = [
-    "../assets/Niveles/a.tmx",
-]
+LEVEL_GRID = {
+    (1, 1): "../assets/Niveles/TierraArriba1-1.tmx",
+    (2, 0): "../assets/Niveles/TierraArriba2-0.tmx",
+    (2, 1): "../assets/Niveles/TierraArriba2-1.tmx",
+    (2, 2): "../assets/Niveles/TierraArriba2-2.tmx",
+}
+LEVEL_ORDER = (
+    (1, 1),
+    (2, 0),
+    (2, 1),
+    (2, 2),
+)
+LEVELS = [LEVEL_GRID[position] for position in LEVEL_ORDER]
+
+OPPOSITE_SIDE = {
+    "left": "right",
+    "right": "left",
+    "top": "bottom",
+    "bottom": "top",
+}
+
+ROOM_CONNECTIONS = {
+    (1, 1): {
+        "bottom": (2, 1),
+        "right": (2, 0),
+    },
+    (2, 0): {
+        "left": (1, 1),
+        "right": (2, 1),
+    },
+    (2, 1): {
+        "top": (1, 1),
+        "left": (2, 0),
+        "right": (2, 2),
+    },
+    (2, 2): {
+        "left": (2, 1),
+    },
+}
+
+SAFE_ROOM_ENTRANCES = {
+    (1, 1): {"left"},
+    (2, 2): {"right"},
+}
+
+SIDE_EXIT_MARGIN = 80
+FALL_VOID_MARGIN = 64
+
+PLATFORM_LAYER_CANDIDATES = (
+    "Platforms",
+    "Capa de patrones 1",
+    "Ruta Uno",
+)
 
 class GameView(arcade.View):
     """
     Main application class.
     """
 
-    def __init__(self, level=1, score=0):
+    def __init__(
+        self,
+        level=1,
+        score=0,
+        lives=MAX_LIVES,
+        room_position=None,
+        entry_side=DEFAULT_ENTRY_SIDE,
+        load_from_save=False,
+    ):
 
         # Call the parent class and set up the window
         super().__init__()
 
-        self.level = level
+        if load_from_save:
+            save_data = load_save()
+            if save_data["has_checkpoint"]:
+                room_position = save_data["room"]
+                entry_side = save_data["entry_side"]
+                score = save_data["score"]
+            else:
+                room_position = DEFAULT_ROOM
+                entry_side = DEFAULT_ENTRY_SIDE
+                score = 0
+            lives = MAX_LIVES
+
+        if room_position is None:
+            room_position = self.room_from_level(level)
+
+        if tuple(room_position) not in LEVEL_GRID:
+            room_position = DEFAULT_ROOM
+
+        if entry_side not in OPPOSITE_SIDE:
+            entry_side = DEFAULT_ENTRY_SIDE
+
+        self.current_room = tuple(room_position)
+        self.level = self.level_from_room(self.current_room)
+        self.entry_side = entry_side
         self.initialized = False
 
         # Track the current state of our input
@@ -47,6 +135,12 @@ class GameView(arcade.View):
 
         # Replacing all of our SpriteLists with a Scene variable
         self.scene = None
+        self.platform_sprites = None
+        self.moving_platform_sprites = None
+        self.ladder_sprites = None
+        self.enemy_sprites = None
+        self.coin_sprites = None
+        self.bullet_sprites = None
 
         # A variable to store our camera object
         self.camera = None
@@ -56,9 +150,11 @@ class GameView(arcade.View):
 
         # This variable will store our score as an integer.
         self.score = score
+        self.lives = lives
 
         # This variable will store the text for score that we will draw to the screen.
         self.score_text = None
+        self.lives_text = None
 
         # Where is the right edge of the map?
         self.end_of_map = 0
@@ -66,7 +162,7 @@ class GameView(arcade.View):
         self.map_height = 0
 
         # Should we reset the score?
-        self.reset_score = True
+        self.reset_score = False
 
         # Shooting mechanics
         self.can_shoot = False
@@ -79,12 +175,23 @@ class GameView(arcade.View):
         self.shoot_sound = arcade.load_sound(":resources:sounds/hurt5.wav")
         self.hit_sound = arcade.load_sound(":resources:sounds/hit5.wav")
 
+    @staticmethod
+    def room_from_level(level):
+        try:
+            return LEVEL_ORDER[level - 1]
+        except IndexError:
+            return DEFAULT_ROOM
+
+    @staticmethod
+    def level_from_room(room):
+        if room in LEVEL_ORDER:
+            return LEVEL_ORDER.index(room) + 1
+
+        return 1
+
     def setup(self):
         """Set up the game here. Call this function to restart the game."""
         layer_options = {
-            "Platforms": {
-                "use_spatial_hash": True
-            },
             "Moving Platforms": {
                 "use_spatial_hash": False
             },
@@ -92,8 +199,10 @@ class GameView(arcade.View):
                 "use_spatial_hash": True
             }
         }
+        for layer_name in PLATFORM_LAYER_CANDIDATES:
+            layer_options[layer_name] = {"use_spatial_hash": True}
 
-        map_path = LEVELS[self.level - 1]
+        map_path = LEVEL_GRID[self.current_room]
 
         self.tile_map = arcade.load_tilemap(
             map_path,
@@ -104,17 +213,12 @@ class GameView(arcade.View):
         # Create our Scene Based on the TileMap
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
 
-        if "Enemies" not in self.scene:
-            self.scene.add_sprite_list("Enemies")
-
-        if "Coins" not in self.scene:
-            self.scene.add_sprite_list("Coins")
-
-        if "Moving Platforms" not in self.scene:
-            self.scene.add_sprite_list("Moving Platforms")
-
-        if "Ladders" not in self.scene:
-            self.scene.add_sprite_list("Ladders")
+        self.platform_sprites = self.find_platform_sprites()
+        self.enemy_sprites = self.ensure_sprite_list("Enemies")
+        self.coin_sprites = self.ensure_sprite_list("Coins")
+        self.moving_platform_sprites = self.ensure_sprite_list("Moving Platforms")
+        self.ladder_sprites = self.ensure_sprite_list("Ladders")
+        self.calculate_map_bounds()
 
         self.player_sprite = PlayerCharacter()
         # TEMPORAL PARA TEST
@@ -127,8 +231,7 @@ class GameView(arcade.View):
 
 
 
-        self.player_sprite.center_x = 128
-        self.player_sprite.center_y = 128
+        self.place_player_at_entry()
         self.scene.add_sprite("Player", self.player_sprite)
 
         # -- Enemies
@@ -136,18 +239,21 @@ class GameView(arcade.View):
             enemies_layer = self.tile_map.object_lists["Enemies"]
 
             for enemy_marker in enemies_layer:
+                enemy_properties = enemy_marker.properties or {}
 
                 coordinates = self.tile_map.get_cartesian(
                     enemy_marker.shape[0],
                     enemy_marker.shape[1]
                 )
 
-                enemy_type = enemy_marker.properties["type"]
+                enemy_type = enemy_properties.get("type", "zombie")
 
                 if enemy_type == "robot":
                     enemy = RobotEnemy()
 
                 elif enemy_type == "zombie":
+                    enemy = ZombieEnemy()
+                else:
                     enemy = ZombieEnemy()
 
                 enemy.center_x = math.floor(
@@ -161,14 +267,15 @@ class GameView(arcade.View):
                     * (self.tile_map.tile_height * TILE_SCALING)
                 )
 
-                if "boundary_left" in enemy_marker.properties:
-                    enemy.boundary_left = enemy_marker.properties["boundary_left"]
-
-                if "boundary_right" in enemy_marker.properties:
-                    enemy.boundary_right = enemy_marker.properties["boundary_right"]
-
-                if "change_x" in enemy_marker.properties:
-                    enemy.change_x = enemy_marker.properties["change_x"]
+                enemy.boundary_left = float(
+                    enemy_properties.get("boundary_left", enemy.center_x - 150)
+                )
+                enemy.boundary_right = float(
+                    enemy_properties.get("boundary_right", enemy.center_x + 150)
+                )
+                enemy.change_x = float(
+                    enemy_properties.get("change_x", enemy.change_x)
+                )
 
                 self.scene.add_sprite("Enemies", enemy)
 
@@ -181,10 +288,10 @@ class GameView(arcade.View):
         # it will not be moved.
         self.physics_engine = arcade.PhysicsEnginePlatformer(
             self.player_sprite,
-            walls=self.scene["Platforms"],
+            walls=self.platform_sprites,
             gravity_constant=GRAVITY,
-            platforms=self.scene["Moving Platforms"],
-            ladders=self.scene["Ladders"]
+            platforms=self.moving_platform_sprites,
+            ladders=self.ladder_sprites
         )
 
         self.camera = arcade.camera.Camera2D()
@@ -198,21 +305,45 @@ class GameView(arcade.View):
 
         self.gui_camera = arcade.camera.Camera2D()
 
-        # Reset the score if we should
-        if self.reset_score:
-            self.score = 0
-        self.reset_score = True
-
         # Shooting mechanics
         self.can_shoot = False
         self.shoot_timer = 0
 
         # Initialize our arcade.Text object for score
         self.score_text = arcade.Text(f"Score: {self.score}", x=0, y=5)
+        self.lives_text = arcade.Text(
+            f"Vidas: {self.lives}",
+            x=0,
+            y=30
+        )
 
         self.background_color = arcade.csscolor.CORNFLOWER_BLUE
 
-        # Calculate the right edge of the map in pixels
+        # Add an empty bullet SpriteList to our scene
+        self.bullet_sprites = self.ensure_sprite_list("Bullets")
+
+        if self.tile_map.background_color:
+            self.window.background_color = self.tile_map.background_color
+        else:
+            self.window.background_color = arcade.color.BLACK
+
+        self.initialized = True
+
+    def ensure_sprite_list(self, name):
+        if name not in self.scene:
+            self.scene.add_sprite_list(name)
+
+        return self.scene[name]
+
+    def find_platform_sprites(self):
+        for layer_name in PLATFORM_LAYER_CANDIDATES:
+            if layer_name in self.scene:
+                return self.scene[layer_name]
+
+        self.scene.add_sprite_list("Platforms")
+        return self.scene["Platforms"]
+
+    def calculate_map_bounds(self):
         self.end_of_map = (self.tile_map.width * self.tile_map.tile_width)
         self.end_of_map *= self.tile_map.scaling
         self.map_width = self.end_of_map
@@ -222,13 +353,214 @@ class GameView(arcade.View):
             * self.tile_map.scaling
         )
 
-        # Add an empty bullet SpriteList to our scene
-        self.scene.add_sprite_list("Bullets")
+    def place_player_at_entry(self):
+        margin = 96
+        center_y = max(margin, min(128, self.map_height - margin))
 
-        if self.tile_map.background_color:
-            self.window.background_color = self.tile_map.background_color
+        if self.entry_side == "right":
+            self.player_sprite.center_x = self.map_width - margin
+            self.player_sprite.center_y = center_y
+        elif self.entry_side == "top":
+            self.player_sprite.center_x = margin
+            self.player_sprite.center_y = self.map_height - margin
+        elif self.entry_side == "bottom":
+            self.player_sprite.center_x = margin
+            self.player_sprite.center_y = margin
         else:
-            self.window.background_color = arcade.color.BLACK
+            self.player_sprite.center_x = margin
+            self.player_sprite.center_y = center_y
+
+        self.player_sprite.change_x = 0
+        self.player_sprite.change_y = 0
+        self.resolve_spawn_collision(margin)
+
+    def resolve_spawn_collision(self, margin):
+        start_x = self.player_sprite.center_x
+        start_y = self.player_sprite.center_y
+        x_candidates = self.spawn_x_candidates(start_x, margin)
+        y_step = max(8, self.tile_map.tile_height * self.tile_map.scaling / 4)
+        max_y = self.map_height - margin / 2
+
+        for x in x_candidates:
+            self.player_sprite.center_x = x
+            self.player_sprite.center_y = start_y
+
+            while self.player_sprite.center_y <= max_y:
+                if not arcade.check_for_collision_with_list(
+                    self.player_sprite,
+                    self.platform_sprites
+                ):
+                    return
+
+                self.player_sprite.center_y += y_step
+
+        self.player_sprite.center_x = min(
+            max(start_x, margin),
+            self.map_width - margin
+        )
+        self.player_sprite.center_y = max_y
+
+    def spawn_x_candidates(self, start_x, margin):
+        step = max(16, self.tile_map.tile_width * self.tile_map.scaling / 2)
+        max_offset = min(self.map_width / 3, 360)
+
+        if self.entry_side == "right":
+            offsets = [0] + [-(offset) for offset in self.spawn_offsets(step, max_offset)]
+        elif self.entry_side == "left":
+            offsets = [0] + self.spawn_offsets(step, max_offset)
+        else:
+            offsets = [0]
+
+        candidates = []
+        for offset in offsets:
+            x = min(max(start_x + offset, margin), self.map_width - margin)
+            if x not in candidates:
+                candidates.append(x)
+
+        return candidates
+
+    @staticmethod
+    def spawn_offsets(step, max_offset):
+        offset = step
+        offsets = []
+        while offset <= max_offset:
+            offsets.append(offset)
+            offset += step
+
+        return offsets
+
+    def connected_room(self, side):
+        explicit_connection = ROOM_CONNECTIONS.get(self.current_room, {}).get(side)
+        if explicit_connection:
+            return explicit_connection
+
+        adjacent_room = self.adjacent_grid_room(side)
+        if adjacent_room in LEVEL_GRID:
+            return adjacent_room
+
+        return self.sequential_side_room(side)
+
+    def adjacent_grid_room(self, side):
+        row, column = self.current_room
+
+        if side == "left":
+            return (row, column - 1)
+        if side == "right":
+            return (row, column + 1)
+        if side == "top":
+            return (row - 1, column)
+        if side == "bottom":
+            return (row + 1, column)
+
+        return None
+
+    def sequential_side_room(self, side):
+        if side not in ("left", "right") or self.current_room not in LEVEL_ORDER:
+            return None
+
+        room_index = LEVEL_ORDER.index(self.current_room)
+        if side == "left" and room_index > 0:
+            return LEVEL_ORDER[room_index - 1]
+        if side == "right" and room_index < len(LEVEL_ORDER) - 1:
+            return LEVEL_ORDER[room_index + 1]
+
+        return None
+
+    def has_safe_room(self, side):
+        return side in SAFE_ROOM_ENTRANCES.get(self.current_room, set())
+
+    def handle_room_exits(self):
+        if (
+            self.player_sprite.change_x < 0
+            and self.player_sprite.left <= SIDE_EXIT_MARGIN
+        ):
+            return self.try_exit_room("left")
+
+        if (
+            self.player_sprite.change_x > 0
+            and self.player_sprite.right >= self.map_width - SIDE_EXIT_MARGIN
+        ):
+            return self.try_exit_room("right")
+
+        if (
+            self.player_sprite.change_y > 0
+            and self.player_sprite.top >= self.map_height
+        ):
+            return self.try_exit_room("top")
+
+        if (
+            self.player_sprite.change_y < 0
+            and self.player_sprite.top < -FALL_VOID_MARGIN
+        ):
+            return self.try_exit_room("bottom")
+
+        return False
+
+    def try_exit_room(self, side):
+        if self.has_safe_room(side):
+            self.enter_safe_room(side)
+            return True
+
+        target_room = self.connected_room(side)
+        if target_room:
+            self.change_room(target_room, OPPOSITE_SIDE[side])
+            return True
+
+        if side == "bottom":
+            self.lose_life()
+            return True
+
+        return False
+
+    def change_room(self, target_room, entry_side):
+        self.current_room = target_room
+        self.level = self.level_from_room(target_room)
+        self.entry_side = entry_side
+        new_game = GameView(
+            level=self.level,
+            score=self.score,
+            lives=self.lives,
+            room_position=self.current_room,
+            entry_side=self.entry_side,
+        )
+        self.window.show_view(new_game)
+
+    def enter_safe_room(self, side):
+        self.entry_side = side
+        self.lives = MAX_LIVES
+        save_game(
+            self.current_room,
+            self.entry_side,
+            score=self.score,
+            lives=self.lives,
+            has_checkpoint=True
+        )
+        self.play_sfx(self.collect_coin_sound)
+        self.place_player_at_entry()
+        self.update_hud()
+
+    def lose_life(self):
+        self.lives -= 1
+        self.play_sfx(self.gameover_sound)
+
+        if self.lives <= 0:
+            game_over = GameOverView(score=self.score)
+            self.window.show_view(game_over)
+            return
+
+        self.place_player_at_entry()
+        self.player_sprite.is_dashing = False
+        self.player_sprite.dash_timer = 0
+        self.player_sprite.wall_sliding = False
+        self.player_sprite.wall_jump_lock_timer = 0
+        self.update_hud()
+
+    def update_hud(self):
+        if self.score_text:
+            self.score_text.text = f"Score: {self.score}"
+
+        if self.lives_text:
+            self.lives_text.text = f"Vidas: {self.lives}"
 
     def on_show_view(self):
         self.window.ctx.viewport = (
@@ -265,6 +597,7 @@ class GameView(arcade.View):
 
         # Draw our Score
         self.score_text.draw()
+        self.lives_text.draw()
 
     def on_update(self, delta_time):
         """Movement and Game Logic"""
@@ -285,7 +618,7 @@ class GameView(arcade.View):
             self.player_sprite.center_x -= 2
             if arcade.check_for_collision_with_list(
                 self.player_sprite,
-                self.scene["Platforms"]
+                self.platform_sprites
             ):
                 touching_left_wall = True
 
@@ -293,7 +626,7 @@ class GameView(arcade.View):
             self.player_sprite.center_x += 4
             if arcade.check_for_collision_with_list(
                 self.player_sprite,
-                self.scene["Platforms"]
+                self.platform_sprites
             ):
                 touching_right_wall = True
 
@@ -412,6 +745,9 @@ class GameView(arcade.View):
 
         # Move the player using our physics engine
         self.physics_engine.update()
+        if self.handle_room_exits():
+            return
+
         self.keep_player_inside_map()
         
         # Actually trigger animation updates. We've added the Background and Coins layer
@@ -439,9 +775,9 @@ class GameView(arcade.View):
             hit_list = arcade.check_for_collision_with_lists(
                 bullet,
                 [
-                    self.scene["Enemies"],
-                    self.scene["Platforms"],
-                    self.scene["Moving Platforms"]
+                    self.enemy_sprites,
+                    self.platform_sprites,
+                    self.moving_platform_sprites
                 ]
             )
 
@@ -449,7 +785,7 @@ class GameView(arcade.View):
                 bullet.remove_from_sprite_lists()
 
                 for collision in hit_list:
-                    if self.scene["Enemies"] in collision.sprite_lists:
+                    if self.enemy_sprites in collision.sprite_lists:
                         collision.health -= 25
 
                         if collision.health <= 0:
@@ -472,29 +808,23 @@ class GameView(arcade.View):
         player_collision_list = arcade.check_for_collision_with_lists(
             self.player_sprite,
             [
-                self.scene["Coins"],
-                self.scene["Enemies"]
+                self.coin_sprites,
+                self.enemy_sprites
             ]
         )
 
         for collision in player_collision_list:
-            if self.scene["Enemies"] in collision.sprite_lists:
-                self.play_sfx(self.gameover_sound)
-                game_over = GameOverView()
-                self.window.show_view(game_over)
+            if self.enemy_sprites in collision.sprite_lists:
+                self.lose_life()
                 return
             else:
                 # Our collision is a coin, remove it
                 collision.remove_from_sprite_lists()
                 self.play_sfx(self.collect_coin_sound)
                 self.score += 75
-                self.score_text.text = f"Score: {self.score}"
+                self.update_hud()
 
         self.update_camera()
-
-        # Pasar de nivel
-        if self.player_sprite.center_x >= self.end_of_map - 200:
-            self.next_level()
 
     def process_keychange(self):
         # First handle the case where we have moved up. This needs to be handled
@@ -598,7 +928,13 @@ class GameView(arcade.View):
             return
 
         if key == SETTINGS.key_restart:
-            new_game = GameView(level=self.level)
+            new_game = GameView(
+                level=self.level,
+                score=self.score,
+                lives=self.lives,
+                room_position=self.current_room,
+                entry_side=self.entry_side,
+            )
             self.window.show_view(new_game)
             return
 
@@ -611,6 +947,9 @@ class GameView(arcade.View):
             self.left_pressed = True
         elif key == SETTINGS.key_right:
             self.right_pressed = True
+
+        elif key == SETTINGS.key_shoot:
+            self.shoot_pressed = True
 
         # --- DASH ---
         if key == SETTINGS.key_dash:
@@ -652,7 +991,7 @@ class GameView(arcade.View):
         elif key == SETTINGS.key_down:
             self.down_pressed = False
 
-        if key == arcade.key.Q:
+        if key == SETTINGS.key_shoot:
             self.shoot_pressed = False
 
         self.process_keychange()
@@ -685,10 +1024,6 @@ class GameView(arcade.View):
         if self.player_sprite.right > self.map_width:
             self.player_sprite.right = self.map_width
             self.player_sprite.change_x = min(0, self.player_sprite.change_x)
-
-        if self.player_sprite.bottom < 0:
-            self.player_sprite.bottom = 0
-            self.player_sprite.change_y = max(0, self.player_sprite.change_y)
 
         if self.player_sprite.top > self.map_height:
             self.player_sprite.top = self.map_height
@@ -732,28 +1067,53 @@ class GameView(arcade.View):
             return
 
         # Crear nuevo nivel
-        new_game = GameView(level=next_level_number, score=self.score)
+        new_game = GameView(
+            level=next_level_number,
+            score=self.score,
+            lives=self.lives,
+            entry_side=DEFAULT_ENTRY_SIDE,
+        )
 
         self.window.show_view(new_game)
 
 class GameOverView(arcade.View):
+    def __init__(self, score=0):
+        super().__init__()
+        self.score = score
+
     def on_show_view(self):
         self.window.background_color = arcade.color.BLACK
 
     def on_draw(self):
         self.clear()
         arcade.draw_text(
-            "Game Over - Click to Restart",
+            "Game Over",
             self.window.width // 2,
-            self.window.height // 2,
+            self.window.height // 2 + 32,
             arcade.color.WHITE,
             30,
             anchor_x="center"
         )
+        arcade.draw_text(
+            f"Score: {self.score}",
+            self.window.width // 2,
+            self.window.height // 2 - 6,
+            arcade.color.WHITE,
+            18,
+            anchor_x="center"
+        )
+        arcade.draw_text(
+            "Click para volver al menu",
+            self.window.width // 2,
+            self.window.height // 2 - 44,
+            arcade.color.WHITE,
+            16,
+            anchor_x="center"
+        )
 
     def on_mouse_press(self, _x, _y, _button, _modifiers):
-        game_view = GameView()
-        self.window.show_view(game_view)
+        from views.menu_view import MainMenu
+        self.window.show_view(MainMenu())
 
     def on_resize(self, width, height):
 

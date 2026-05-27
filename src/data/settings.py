@@ -22,6 +22,7 @@ class GameSettings:
         self.key_right = arcade.key.D
 
         self.key_dash = arcade.key.LSHIFT
+        self.key_shoot = arcade.key.Q
         self.key_pause = arcade.key.ESCAPE
         self.key_restart = arcade.key.R
 
@@ -39,17 +40,18 @@ class GameSettings:
             "key_right": self.key_right,
 
             "key_dash": self.key_dash,
+            "key_shoot": self.key_shoot,
             "key_pause": self.key_pause,
             "key_restart": self.key_restart,
         }
 
-        with open(SETTINGS_PATH, "w") as file:
+        with open(SETTINGS_PATH, "w", encoding="utf-8") as file:
             json.dump(data, file, indent=4)
 
     def load(self):
 
         try:
-            with open(SETTINGS_PATH, "r") as file:
+            with open(SETTINGS_PATH, "r", encoding="utf-8") as file:
                 data = json.load(file)
 
             self.music_volume = data["music_volume"]
@@ -64,10 +66,11 @@ class GameSettings:
             self.key_right = data["key_right"]
 
             self.key_dash = data["key_dash"]
+            self.key_shoot = data["key_shoot"]
             self.key_pause = data["key_pause"]
             self.key_restart = data["key_restart"]
 
-        except (FileNotFoundError, json.JSONDecodeError):
+        except (FileNotFoundError, json.JSONDecodeError, KeyError, TypeError):
             self.save()
 
 

@@ -9,6 +9,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from data.settings import SETTINGS
+from data.savegame import reset_save
 from views.credits_view import CreditsView
 from views.settings_view import SettingsView
 
@@ -179,18 +180,24 @@ class MainMenu(arcade.View):
 
         from views.game_view import GameView
 
-        game = GameView()
-        game.setup()
+        save_data = reset_save()
+        game = GameView(
+            score=save_data["score"],
+            lives=save_data["lives"],
+            room_position=save_data["room"],
+            entry_side=save_data["entry_side"],
+        )
         self.current_game_view = game
         self.window.show_view(game)
 
     def continue_game(self):
         self.stop_menu_media()
 
-        if self.current_game_view:
-            self.window.show_view(self.current_game_view)
-        else:
-            self.new_game()
+        from views.game_view import GameView
+
+        game = GameView(load_from_save=True)
+        self.current_game_view = game
+        self.window.show_view(game)
 
     def settings(self):
         self.window.show_view(SettingsView(self))

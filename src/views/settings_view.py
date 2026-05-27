@@ -31,6 +31,7 @@ class SettingsView(arcade.View):
             ("Izquierda", "key_left", "controls"),
             ("Derecha", "key_right", "controls"),
             ("Dash", "key_dash", "controls"),
+            ("Disparar", "key_shoot", "controls"),
             ("Pausa", "key_pause", "controls"),
             ("Reiniciar", "key_restart", "controls"),
             ("Volver", "back", "back"),
@@ -79,10 +80,18 @@ class SettingsView(arcade.View):
         self._draw_option(3, left_x, video_y - gap, width * 0.28)
 
         self._draw_section("CONTROLES", right_x, controls_y)
-        for row, option_index in enumerate(range(4, 11)):
+        control_indices = [
+            i for i, (_label, _action, section) in enumerate(self.options)
+            if section == "controls"
+        ]
+        for row, option_index in enumerate(control_indices):
             self._draw_option(option_index, right_x, controls_y - gap * (row + 1), width * 0.24)
 
-        self._draw_option(11, width / 2 - 110, 78, 220)
+        back_index = next(
+            i for i, (_label, _action, section) in enumerate(self.options)
+            if section == "back"
+        )
+        self._draw_option(back_index, width / 2 - 110, 78, 220)
 
         if self.waiting_for_key:
             self._draw_waiting_message(width, height)
@@ -356,8 +365,13 @@ class SettingsView(arcade.View):
 
         if isinstance(self.previous_view, PauseMenuView):
             old_game = self.previous_view.game_view
-            new_game = GameView(level=old_game.level)
-            new_game.setup()
+            new_game = GameView(
+                level=old_game.level,
+                score=old_game.score,
+                lives=old_game.lives,
+                room_position=old_game.current_room,
+                entry_side=old_game.entry_side,
+            )
             self.window.show_view(new_game)
         elif isinstance(self.previous_view, MainMenu):
             self.window.show_view(MainMenu())

@@ -208,6 +208,7 @@ __marimo__/
 
 # Local game configuration
 settings.json
+savegame.json
 
 # Saves 
 saves/

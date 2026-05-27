@@ -26,6 +26,8 @@ def main():
 
     window.set_minimum_size(640, 360)
     window.center_window()
+    if SETTINGS.fullscreen:
+        window.set_fullscreen(True)
     window.ctx.viewport = (0, 0, window.width, window.height)
     menu_view = MainMenu()
     window.show_view(menu_view)
@@ -46,7 +48,5 @@ if __name__ == "__main__":
     #print(f"Test file size: {filetest.stat().st_size} bytes")
     
     SETTINGS.load()
-    SETTINGS.fullscreen = False
-    SETTINGS.save()
 
     main()
