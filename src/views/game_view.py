@@ -15,8 +15,10 @@ from models.enemy import (
 )
 
 LEVELS = [
-    "../assets/Mapas/Tierra arriba1.tmx",
-    "../assets/Mapas/Tierra arriba2.tmx"
+    "../assets/Mapas/TierraArriba1.tmx",
+    "../assets/Mapas/TierraArriba2.tmx",
+    "../assets/Mapas/TierraArriba3.tmx",
+    "../assets/Mapas/SavePointTierra.tmx"
 ]
 
 class GameView(arcade.View):
