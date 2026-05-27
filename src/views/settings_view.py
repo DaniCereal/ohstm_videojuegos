@@ -365,12 +365,17 @@ class SettingsView(arcade.View):
 
         if isinstance(self.previous_view, PauseMenuView):
             old_game = self.previous_view.game_view
+            inherited_music = old_game.music
+            inherited_player = old_game.music_player
+            old_game.music_player = None
             new_game = GameView(
                 level=old_game.level,
                 score=old_game.score,
                 lives=old_game.lives,
                 room_position=old_game.current_room,
                 entry_side=old_game.entry_side,
+                inherited_music=inherited_music,
+                inherited_music_player=inherited_player,
             )
             self.window.show_view(new_game)
         elif isinstance(self.previous_view, MainMenu):

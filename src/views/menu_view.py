@@ -34,7 +34,6 @@ class MainMenu(arcade.View):
         self.buttons = [
             ("Nueva Partida", self.new_game),
             ("Jugar", self.continue_game),
-            ("Historia", self.story),
             ("Ajustes", self.settings),
             ("Creditos", self.credits),
             ("Salir", self.exit_game),
@@ -88,8 +87,8 @@ class MainMenu(arcade.View):
         )
 
     def _draw_buttons(self, width, height):
-        start_y = height * 0.53
-        gap = 58
+        start_y = height * 0.56
+        gap = 64
         x = self._menu_center_x(width)
 
         for i, (label, _action) in enumerate(self.buttons):
@@ -153,8 +152,8 @@ class MainMenu(arcade.View):
         self.activate_selected()
 
     def get_button_at(self, x, y, default):
-        start_y = self.window.height * 0.53
-        gap = 58
+        start_y = self.window.height * 0.56
+        gap = 64
         center_x = self._menu_center_x(self.window.width)
         width = 330
         height = 42
