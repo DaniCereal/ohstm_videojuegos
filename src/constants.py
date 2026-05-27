@@ -5,7 +5,7 @@ WINDOW_HEIGHT = 720
 WINDOW_TITLE = "OH HERMES SEND THE MESSAGE"
 
 # Constants used to scale our sprites from their original size
-TILE_SCALING = 0.5
+TILE_SCALING = 1.5
 COIN_SCALING = 0.5
 
 # Movement speed of player, in pixels per frame

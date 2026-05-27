@@ -62,6 +62,8 @@ class GameView(arcade.View):
 
         # Where is the right edge of the map?
         self.end_of_map = 0
+        self.map_width = 0
+        self.map_height = 0
 
         # Should we reset the score?
         self.reset_score = True
@@ -213,6 +215,12 @@ class GameView(arcade.View):
         # Calculate the right edge of the map in pixels
         self.end_of_map = (self.tile_map.width * self.tile_map.tile_width)
         self.end_of_map *= self.tile_map.scaling
+        self.map_width = self.end_of_map
+        self.map_height = (
+            self.tile_map.height
+            * self.tile_map.tile_height
+            * self.tile_map.scaling
+        )
 
         # Add an empty bullet SpriteList to our scene
         self.scene.add_sprite_list("Bullets")
@@ -404,6 +412,7 @@ class GameView(arcade.View):
 
         # Move the player using our physics engine
         self.physics_engine.update()
+        self.keep_player_inside_map()
         
         # Actually trigger animation updates. We've added the Background and Coins layer
         # here as well. Our Tiled map has some animated tiles built-in, check out the flags
@@ -481,8 +490,7 @@ class GameView(arcade.View):
                 self.score += 75
                 self.score_text.text = f"Score: {self.score}"
 
-        # Center our camera on the player
-        self.camera.position = self.player_sprite.position
+        self.update_camera()
 
         # Pasar de nivel
         if self.player_sprite.center_x >= self.end_of_map - 200:
@@ -668,6 +676,51 @@ class GameView(arcade.View):
             sound,
             volume=SETTINGS.sfx_volume
         )
+
+    def keep_player_inside_map(self):
+        if self.player_sprite.left < 0:
+            self.player_sprite.left = 0
+            self.player_sprite.change_x = max(0, self.player_sprite.change_x)
+
+        if self.player_sprite.right > self.map_width:
+            self.player_sprite.right = self.map_width
+            self.player_sprite.change_x = min(0, self.player_sprite.change_x)
+
+        if self.player_sprite.bottom < 0:
+            self.player_sprite.bottom = 0
+            self.player_sprite.change_y = max(0, self.player_sprite.change_y)
+
+        if self.player_sprite.top > self.map_height:
+            self.player_sprite.top = self.map_height
+            self.player_sprite.change_y = min(0, self.player_sprite.change_y)
+
+    def update_camera(self):
+        viewport_width = self.window.width
+        viewport_height = self.window.height
+
+        if self.map_width <= viewport_width:
+            camera_x = self.map_width / 2
+        else:
+            camera_x = max(
+                viewport_width / 2,
+                min(
+                    self.player_sprite.center_x,
+                    self.map_width - viewport_width / 2
+                )
+            )
+
+        if self.map_height <= viewport_height:
+            camera_y = self.map_height / 2
+        else:
+            camera_y = max(
+                viewport_height / 2,
+                min(
+                    self.player_sprite.center_y,
+                    self.map_height - viewport_height / 2
+                )
+            )
+
+        self.camera.position = (camera_x, camera_y)
     
     def next_level(self):
 
