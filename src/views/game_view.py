@@ -33,6 +33,13 @@ LEVEL_ORDER = (
 )
 LEVELS = [LEVEL_GRID[position] for position in LEVEL_ORDER]
 
+LEVEL_MUSIC = [
+    "../assets/Music/OST/Earth_1_clean.wav",
+    "../assets/Music/OST/Earth_1_clean.wav",
+    "../assets/Music/OST/Earth_1_clean.wav",
+    "../assets/Music/OST/Earth_1_clean.wav",
+]
+
 OPPOSITE_SIDE = {
     "left": "right",
     "right": "left",
@@ -86,6 +93,8 @@ class GameView(arcade.View):
         room_position=None,
         entry_side=DEFAULT_ENTRY_SIDE,
         load_from_save=False,
+        inherited_music=None,
+        inherited_music_player=None,
     ):
 
         # Call the parent class and set up the window
@@ -167,6 +176,10 @@ class GameView(arcade.View):
         # Shooting mechanics
         self.can_shoot = False
         self.shoot_timer = 0
+
+        # Music (puede heredarse de la sala anterior si es el mismo track)
+        self.music = inherited_music
+        self.music_player = inherited_music_player
 
         # Load sounds
         self.collect_coin_sound = arcade.load_sound(":resources:sounds/coin1.wav")
@@ -309,13 +322,8 @@ class GameView(arcade.View):
         self.can_shoot = False
         self.shoot_timer = 0
 
-        # Initialize our arcade.Text object for score
-        self.score_text = arcade.Text(f"Score: {self.score}", x=0, y=5)
-        self.lives_text = arcade.Text(
-            f"Vidas: {self.lives}",
-            x=0,
-            y=30
-        )
+        self.score_text = None
+        self.lives_text = None
 
         self.background_color = arcade.csscolor.CORNFLOWER_BLUE
 
@@ -327,6 +335,8 @@ class GameView(arcade.View):
         else:
             self.window.background_color = arcade.color.BLACK
 
+        if not self.music_player:
+            self.start_music()
         self.initialized = True
 
     def ensure_sprite_list(self, name):
@@ -513,15 +523,33 @@ class GameView(arcade.View):
         return False
 
     def change_room(self, target_room, entry_side):
-        self.current_room = target_room
-        self.level = self.level_from_room(target_room)
-        self.entry_side = entry_side
+        next_level = self.level_from_room(target_room)
+        same_track = (
+            0 < next_level <= len(LEVEL_MUSIC)
+            and 0 < self.level <= len(LEVEL_MUSIC)
+            and LEVEL_MUSIC[next_level - 1] == LEVEL_MUSIC[self.level - 1]
+        )
+
+        if same_track:
+            inherited_music = self.music
+            inherited_player = self.music_player
+            self.music = None
+            self.music_player = None
+        else:
+            if self.music_player:
+                self.music_player.delete()
+                self.music_player = None
+            inherited_music = None
+            inherited_player = None
+
         new_game = GameView(
-            level=self.level,
+            level=next_level,
             score=self.score,
             lives=self.lives,
-            room_position=self.current_room,
-            entry_side=self.entry_side,
+            room_position=target_room,
+            entry_side=entry_side,
+            inherited_music=inherited_music,
+            inherited_music_player=inherited_player,
         )
         self.window.show_view(new_game)
 
@@ -556,11 +584,16 @@ class GameView(arcade.View):
         self.update_hud()
 
     def update_hud(self):
-        if self.score_text:
-            self.score_text.text = f"Score: {self.score}"
+        pass
 
-        if self.lives_text:
-            self.lives_text.text = f"Vidas: {self.lives}"
+    def start_music(self):
+        if self.music_player:
+            self.music_player.delete()
+        music_path = LEVEL_MUSIC[self.level - 1]
+        self.music = arcade.load_sound(music_path, streaming=True)
+        self.music_player = arcade.play_sound(
+            self.music, volume=SETTINGS.music_volume, loop=True
+        )
 
     def on_show_view(self):
         self.window.ctx.viewport = (
@@ -579,6 +612,8 @@ class GameView(arcade.View):
         if not self.initialized:
             self.setup()
             self.initialized = True
+        elif self.music_player:
+            self.music_player.volume = SETTINGS.music_volume
 
     def on_draw(self):
         """Render the screen."""
@@ -595,9 +630,40 @@ class GameView(arcade.View):
         # Activate our GUI camera
         self.gui_camera.use()
 
-        # Draw our Score
-        self.score_text.draw()
-        self.lives_text.draw()
+        self._draw_hud()
+
+    def _draw_hud(self):
+        h = self.window.height
+        pad = 14
+        font = "Garamond"
+
+        arcade.draw_rect_filled(
+            arcade.LBWH(0, h - 58, 152, 58),
+            (5, 7, 13, 115),
+        )
+        arcade.draw_line(152, h - 58, 152, h, (212, 165, 78, 35), 1)
+
+        filled = "♥ " * self.lives
+        empty  = "♡ " * (MAX_LIVES - self.lives)
+        arcade.draw_text(
+            (filled + empty).strip(),
+            pad, h - 20,
+            (196, 72, 72),
+            17,
+            anchor_x="left",
+            anchor_y="center",
+            font_name=font,
+        )
+
+        arcade.draw_text(
+            f"✦  {self.score}",
+            pad, h - 42,
+            (212, 165, 78),
+            13,
+            anchor_x="left",
+            anchor_y="center",
+            font_name=font,
+        )
 
     def on_update(self, delta_time):
         """Movement and Game Logic"""
@@ -1010,6 +1076,10 @@ class GameView(arcade.View):
         if self.gui_camera:
             self.gui_camera.match_window()
 
+    def update_music_volume(self):
+        if self.music_player:
+            self.music_player.volume = SETTINGS.music_volume
+
     def play_sfx(self, sound):
         arcade.play_sound(
             sound,
@@ -1066,14 +1136,16 @@ class GameView(arcade.View):
             print("Juego completado")
             return
 
-        # Crear nuevo nivel
+        if self.music_player:
+            self.music_player.delete()
+            self.music_player = None
+
         new_game = GameView(
             level=next_level_number,
             score=self.score,
             lives=self.lives,
             entry_side=DEFAULT_ENTRY_SIDE,
         )
-
         self.window.show_view(new_game)
 
 class GameOverView(arcade.View):
