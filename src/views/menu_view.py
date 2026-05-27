@@ -34,7 +34,6 @@ class MainMenu(arcade.View):
         self.buttons = [
             ("Nueva Partida", self.new_game),
             ("Jugar", self.continue_game),
-            ("Historia", self.story),
             ("Ajustes", self.settings),
             ("Creditos", self.credits),
             ("Salir", self.exit_game),
@@ -88,8 +87,8 @@ class MainMenu(arcade.View):
         )
 
     def _draw_buttons(self, width, height):
-        start_y = height * 0.53
-        gap = 58
+        start_y = height * 0.56
+        gap = 64
         x = self._menu_center_x(width)
 
         for i, (label, _action) in enumerate(self.buttons):
@@ -111,30 +110,16 @@ class MainMenu(arcade.View):
         return arcade.Texture(image=image)
 
     def _draw_button(self, label, x, y, selected):
-        width = 330
-        height = 42
-
-        if selected:
-            arcade.draw_rect_filled(
-                arcade.LRBT(x - width / 2, x + width / 2, y - height / 2, y + height / 2),
-                (12, 16, 24, 42),
-            )
-            arcade.draw_rect_outline(
-                arcade.LRBT(x - width / 2, x + width / 2, y - height / 2, y + height / 2),
-                (199, 150, 69, 150),
-                2,
-            )
-
         arcade.draw_text(
             label,
             x,
             y,
-            (255, 247, 220) if selected else (222, 214, 190),
-            26 if selected else 24,
+            (255, 255, 255) if selected else (190, 182, 162),
+            32 if selected else 26,
             anchor_x="center",
             anchor_y="center",
             font_name=self.font_name,
-            bold=False,
+            bold=selected,
         )
 
     def on_key_press(self, key, modifiers):
@@ -153,8 +138,8 @@ class MainMenu(arcade.View):
         self.activate_selected()
 
     def get_button_at(self, x, y, default):
-        start_y = self.window.height * 0.53
-        gap = 58
+        start_y = self.window.height * 0.56
+        gap = 64
         center_x = self._menu_center_x(self.window.width)
         width = 330
         height = 42

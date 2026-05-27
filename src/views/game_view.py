@@ -1,5 +1,6 @@
 import arcade
 import math
+import random
 
 from data.savegame import (
     DEFAULT_ENTRY_SIDE,
@@ -71,8 +72,8 @@ SAFE_ROOM_ENTRANCES = {
     (2, 2): {"right"},
 }
 
-SIDE_EXIT_MARGIN = 80
-FALL_VOID_MARGIN = 64
+SIDE_EXIT_MARGIN = 0.1
+FALL_VOID_MARGIN = 20
 
 PLATFORM_LAYER_CANDIDATES = (
     "Platforms",
@@ -576,8 +577,11 @@ class GameView(arcade.View):
             if self.music_player:
                 self.music_player.delete()
                 self.music_player = None
-            game_over = GameOverView(score=self.score, game_view=self)
-            self.window.show_view(game_over)
+            from views.transitions import FadeToView
+            score = self.score
+            self.window.show_view(
+                FadeToView(self, lambda: GameOverView(score=score), duration=0.65)
+            )
             return
 
         self.place_player_at_entry()
@@ -641,12 +645,6 @@ class GameView(arcade.View):
         h = self.window.height
         pad = 14
         font = "Garamond"
-
-        arcade.draw_rect_filled(
-            arcade.LBWH(0, h - 58, 152, 58),
-            (5, 7, 13, 115),
-        )
-        arcade.draw_line(152, h - 58, 152, h, (212, 165, 78, 35), 1)
 
         filled = "♥ " * self.lives
         empty  = "♡ " * (MAX_LIVES - self.lives)
@@ -1262,113 +1260,208 @@ _DEATH_PHRASES = [
     "La muerte es solo un desvío.",
 ]
 
-import random
+_EMBER_COLORS = [(255, 130, 50), (255, 210, 70), (210, 60, 50)]
+
 
 class GameOverView(arcade.View):
+
+    _STAR_COUNT  = 120
+    _EMBER_COUNT = 22
+
     def __init__(self, score=0, game_view=None):
         super().__init__()
         self.score = score
-        self.game_view = game_view
         self.selected_index = 0
         self.font_name = "Garamond"
         self.cream = (238, 230, 206)
-        self.muted = (176, 166, 142)
-        self.gold = (212, 165, 78)
-        self.phrase = random.choice(_DEATH_PHRASES)
+        self.muted  = (176, 166, 142)
+        self.gold   = (212, 165, 78)
+        self.phrase       = random.choice(_DEATH_PHRASES)
+        self.phrase_alpha = 255
+        self.phrase_timer = 0.0
+        self.phrase_state = "showing"   # showing | fading_out | fading_in
+        self._SHOW_TIME   = 7.0
+        self._FADE_TIME   = 1.0
         self.options = [
-            ("Reintentar", self._retry),
+            ("Reintentar",    self._retry),
             ("Menu principal", self._go_menu),
         ]
         self.button_hitboxes = []
+        self.time   = 0.0
+        self.stars  = []
+        self.embers = []
+        self.music        = arcade.load_sound("../assets/Music/OST/Menu_Caido.ogg", streaming=True)
+        self.music_player = None
+
+    # ------------------------------------------------------------------ #
+    #  Particles                                                           #
+    # ------------------------------------------------------------------ #
+
+    def _init_particles(self, w, h):
+        self.stars = [
+            {
+                'x':     random.uniform(0, w),
+                'y':     random.uniform(0, h),
+                'r':     random.choice([0.7, 0.7, 1.2, 1.2, 1.8]),
+                'phase': random.uniform(0, math.tau),
+                'speed': random.uniform(2.0, 6.0),
+                'base':  random.randint(35, 155),
+            }
+            for _ in range(self._STAR_COUNT)
+        ]
+        self.embers = [self._spawn_ember(w, h, born=True)
+                       for _ in range(self._EMBER_COUNT)]
+
+    def _spawn_ember(self, w, h, born=False):
+        return {
+            'x':        random.uniform(w * 0.05, w * 0.95),
+            'y':        random.uniform(0, h * 0.25) if born else -8,
+            'vx':       random.uniform(-14, 14),
+            'vy':       random.uniform(35, 100),
+            'r':        random.uniform(1.4, 3.2),
+            'color':    random.choice(_EMBER_COLORS),
+            'life':     0.0,
+            'max_life': random.uniform(2.5, 5.5),
+        }
+
+    # ------------------------------------------------------------------ #
+    #  Lifecycle                                                           #
+    # ------------------------------------------------------------------ #
 
     def on_show_view(self):
         self.window.ctx.viewport = (0, 0, self.window.width, self.window.height)
+        if not self.stars:
+            self._init_particles(self.window.width, self.window.height)
+        self.music_player = arcade.play_sound(self.music, volume=SETTINGS.music_volume * 0.45, loop=True)
+
+    def on_update(self, delta_time):
+        self.time += delta_time
+        self.phrase_timer += delta_time
+
+        if self.phrase_state == "showing":
+            self.phrase_alpha = 255
+            if self.phrase_timer >= self._SHOW_TIME:
+                self.phrase_state = "fading_out"
+                self.phrase_timer = 0.0
+        elif self.phrase_state == "fading_out":
+            self.phrase_alpha = int(255 * max(0, 1 - self.phrase_timer / self._FADE_TIME))
+            if self.phrase_timer >= self._FADE_TIME:
+                others = [p for p in _DEATH_PHRASES if p != self.phrase]
+                self.phrase = random.choice(others)
+                self.phrase_state = "fading_in"
+                self.phrase_timer = 0.0
+        elif self.phrase_state == "fading_in":
+            self.phrase_alpha = int(255 * min(1, self.phrase_timer / self._FADE_TIME))
+            if self.phrase_timer >= self._FADE_TIME:
+                self.phrase_state = "showing"
+                self.phrase_timer = 0.0
+
+        w, h = self.window.width, self.window.height
+        for e in self.embers:
+            e['life'] += delta_time
+            e['x']   += e['vx'] * delta_time
+            e['y']   += e['vy'] * delta_time
+            if e['life'] >= e['max_life'] or e['y'] > h + 16:
+                e.update(self._spawn_ember(w, h))
+
+    # ------------------------------------------------------------------ #
+    #  Drawing                                                             #
+    # ------------------------------------------------------------------ #
 
     def on_draw(self):
-        if self.game_view:
-            self.game_view.on_draw()
-        else:
-            self.clear()
-
-        width = self.window.width
-        height = self.window.height
+        self.clear()
+        w = self.window.width
+        h = self.window.height
         self.button_hitboxes = []
 
-        arcade.draw_rect_filled(arcade.LBWH(0, 0, width, height), (4, 6, 11, 195))
+        arcade.draw_rect_filled(arcade.LBWH(0, 0, w, h), (4, 4, 10))
 
-        cx = width / 2
-        title_y = height * 0.66
+        # Estrellas que titilan
+        for s in self.stars:
+            t     = 0.5 + 0.5 * math.sin(self.time * s['speed'] + s['phase'])
+            alpha = int(s['base'] + (230 - s['base']) * t)
+            arcade.draw_circle_filled(s['x'], s['y'], s['r'], (215, 205, 255, alpha))
 
+        # Brasas que ascienden
+        for e in self.embers:
+            t     = e['life'] / e['max_life']
+            alpha = int(220 * (1 - t ** 0.55))
+            if alpha > 0:
+                arcade.draw_circle_filled(e['x'], e['y'], e['r'], (*e['color'], alpha))
+
+        cx      = w / 2
+        title_y = h * 0.66
+
+        # Halo dorado detrás del título
         arcade.draw_text(
-            "CAÍDO",
-            cx, title_y,
-            self.cream, 40,
+            "CAÍDO", cx, title_y,
+            (212, 165, 78, 32), 44,
+            anchor_x="center", anchor_y="center",
+            font_name=self.font_name,
+        )
+        # Título
+        arcade.draw_text(
+            "CAÍDO", cx, title_y,
+            self.cream, 36,
             anchor_x="center", anchor_y="center",
             font_name=self.font_name,
         )
         arcade.draw_line(
-            cx - 80, title_y - 30,
-            cx + 80, title_y - 30,
-            (212, 165, 78, 80), 1,
+            cx - 64, title_y - 26,
+            cx + 64, title_y - 26,
+            (212, 165, 78, 60), 1,
         )
 
+        # Frase motivadora
         arcade.draw_text(
             self.phrase,
-            cx, title_y - 58,
-            self.muted, 16,
+            cx, title_y - 52,
+            (176, 166, 142, self.phrase_alpha), 16,
             anchor_x="center", anchor_y="center",
             font_name=self.font_name,
             italic=True,
         )
 
+        # Puntuación
         arcade.draw_text(
             f"✦  {self.score}",
-            cx, height * 0.48,
-            self.gold, 20,
+            cx, h * 0.49,
+            self.gold, 17,
             anchor_x="center", anchor_y="center",
             font_name=self.font_name,
         )
 
-        start_y = height * 0.38
-        gap = 58
+        # Botones
+        start_y = h * 0.39
         for i, (label, _) in enumerate(self.options):
-            y = start_y - i * gap
-            self._draw_button(i, label, cx, y, i == self.selected_index)
+            self._draw_button(i, label, cx, start_y - i * 52, i == self.selected_index)
 
         arcade.draw_text(
-            "W S / flechas  ·  Enter  ·  Esc",
-            cx, 48,
-            self.muted, 15,
+            "W S  ·  Enter  ·  Esc",
+            cx, 40,
+            (176, 166, 142, 70), 13,
             anchor_x="center", anchor_y="center",
             font_name=self.font_name,
         )
 
     def _draw_button(self, index, label, x, y, selected):
-        btn_w = 300
-        btn_h = 46
-        left = x - btn_w / 2
-        right = x + btn_w / 2
-        bottom = y - btn_h / 2
-        top = y + btn_h / 2
+        bw, bh = 270, 42
+        left, right   = x - bw / 2, x + bw / 2
+        bottom, top   = y - bh / 2, y + bh / 2
         self.button_hitboxes.append((index, left, right, bottom, top))
-
-        if selected:
-            arcade.draw_rect_filled(
-                arcade.LRBT(left, right, bottom, top),
-                (12, 16, 24, 42),
-            )
-            arcade.draw_rect_outline(
-                arcade.LRBT(left, right, bottom, top),
-                (199, 150, 69, 150), 2,
-            )
 
         arcade.draw_text(
             label, x, y,
-            (255, 247, 220) if selected else (222, 214, 190),
-            26 if selected else 24,
+            (255, 255, 255) if selected else (190, 182, 162),
+            28 if selected else 22,
             anchor_x="center", anchor_y="center",
             font_name=self.font_name,
+            bold=selected,
         )
+
+    # ------------------------------------------------------------------ #
+    #  Input                                                               #
+    # ------------------------------------------------------------------ #
 
     def on_key_press(self, key, modifiers):
         if key in (arcade.key.UP, arcade.key.W):
@@ -1398,11 +1491,18 @@ class GameOverView(arcade.View):
         _, action = self.options[self.selected_index]
         action()
 
+    def _stop_music(self):
+        if self.music_player:
+            self.music_player.delete()
+            self.music_player = None
+
     def _retry(self):
-        new_game = GameView()
-        self.window.show_view(new_game)
+        self._stop_music()
+        from views.transitions import FadeToView
+        self.window.show_view(FadeToView(self, GameView, duration=0.6))
 
     def _go_menu(self):
+        self._stop_music()
         from views.menu_view import MainMenu
         from views.transitions import FadeToView
         self.window.show_view(FadeToView(self, MainMenu, duration=0.7))
@@ -1410,4 +1510,5 @@ class GameOverView(arcade.View):
     def on_resize(self, width, height):
         super().on_resize(width, height)
         self.window.ctx.viewport = (0, 0, width, height)
+        self._init_particles(width, height)
 

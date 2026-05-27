@@ -39,7 +39,7 @@ class PlayerCharacter(Character):
         self.animation_timer = 0
         self.texture = self.animations[self.current_animation][0][RIGHT_FACING]
 
-        self.scale = 1
+        self.scale = 1.6
 
         self.climbing = False
         self.jump_pressed = False
