@@ -44,19 +44,23 @@ class PlayerCharacter(Character):
         self.climbing = False
         self.jump_pressed = False
         self.coyote_timer = 0
+        self.jump_lock_timer = 0
 
         self.has_double_jump = False
         self.double_jump_available = False
+        self.double_jump_used = False
 
         self.has_dash = False
         self.dash_available = False
         self.is_dashing = False
         self.dash_timer = 0
         self.dash_cooldown_timer = 0
+        self.dash_input_lock_timer = 0
 
         self.has_wall_jump = False
         self.wall_sliding = False
         self.wall_jump_lock_timer = 0
+        self.wall_jump_active = False
 
     def load_animation(self, folder, file_prefix):
         frames_path = SPRITE_ROOT / folder

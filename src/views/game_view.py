@@ -123,6 +123,7 @@ class GameView(arcade.View):
         self.up_pressed = False
         self.down_pressed = False
         self.shoot_pressed = False
+        self.jump_queued = False
 
         # Variable to hold our texture for our player
         self.player_texture = None
@@ -553,6 +554,7 @@ class GameView(arcade.View):
         self.player_sprite.dash_timer = 0
         self.player_sprite.wall_sliding = False
         self.player_sprite.wall_jump_lock_timer = 0
+        self.player_sprite.wall_jump_active = False
         self.update_hud()
 
     def update_hud(self):
@@ -603,8 +605,39 @@ class GameView(arcade.View):
         """Movement and Game Logic"""
 
         # --- WALL JUMP LOCK TIMER ---
+        was_wall_jump_locked = self.player_sprite.wall_jump_lock_timer > 0
         if self.player_sprite.wall_jump_lock_timer > 0:
-            self.player_sprite.wall_jump_lock_timer -= delta_time
+            self.player_sprite.wall_jump_lock_timer = max(
+                0,
+                self.player_sprite.wall_jump_lock_timer - delta_time
+            )
+
+        if (
+            was_wall_jump_locked
+            and self.player_sprite.wall_jump_lock_timer <= 0
+        ):
+            self.player_sprite.wall_jump_active = False
+            self.process_keychange()
+
+        was_jump_locked = self.player_sprite.jump_lock_timer > 0
+        if self.player_sprite.jump_lock_timer > 0:
+            self.player_sprite.jump_lock_timer = max(
+                0,
+                self.player_sprite.jump_lock_timer - delta_time
+            )
+
+        if (
+            was_jump_locked
+            and self.player_sprite.jump_lock_timer <= 0
+            and self.jump_queued
+        ):
+            self.process_keychange()
+
+        if self.player_sprite.dash_input_lock_timer > 0:
+            self.player_sprite.dash_input_lock_timer = max(
+                0,
+                self.player_sprite.dash_input_lock_timer - delta_time
+            )
 
         # --- WALL SLIDE ---
         self.player_sprite.wall_sliding = False
@@ -695,18 +728,27 @@ class GameView(arcade.View):
             self.player_sprite.coyote_timer = 0.12
 
             # Reset doble salto al tocar suelo
-            self.player_sprite.double_jump_available = True
+            self.player_sprite.double_jump_available = False
+            self.player_sprite.double_jump_used = False
             self.player_sprite.dash_available = True
         else:
             self.player_sprite.coyote_timer = max(
                 0, self.player_sprite.coyote_timer - delta_time
             )
+
+            if (
+                self.player_sprite.has_double_jump
+                and not self.player_sprite.double_jump_used
+                and not self.player_sprite.double_jump_available
+                and self.player_sprite.change_y <= 0
+            ):
+                self.player_sprite.double_jump_available = True
         # --- Better Jump ---
         if not self.player_sprite.is_dashing:
 
             # Caída más rápida
             if self.player_sprite.change_y < 0:
-                self.player_sprite.change_y -= GRAVITY * 0.8
+                self.player_sprite.change_y -= GRAVITY * 0.5
 
             # Salto variable
             elif self.player_sprite.change_y > 0:
@@ -745,6 +787,7 @@ class GameView(arcade.View):
 
         # Move the player using our physics engine
         self.physics_engine.update()
+        self.cancel_wall_jump_on_collision()
         if self.handle_room_exits():
             return
 
@@ -843,32 +886,50 @@ class GameView(arcade.View):
         if self.up_pressed and not self.down_pressed:
             if self.physics_engine.is_on_ladder():
                 self.player_sprite.change_y = PLAYER_MOVEMENT_SPEED
-            elif self.physics_engine.can_jump(y_distance=10) or self.player_sprite.coyote_timer > 0:
+            elif (
+                self.jump_queued
+                and self.player_sprite.jump_lock_timer <= 0
+                and (
+                    self.physics_engine.can_jump(y_distance=10)
+                    or self.player_sprite.coyote_timer > 0
+                )
+            ):
                 
                 # Salto normal
                 self.player_sprite.change_y = PLAYER_JUMP_SPEED
                 self.player_sprite.coyote_timer = 0
-
-                arcade.play_sound(
-                    self.jump_sound,
-                    volume=SETTINGS.sfx_volume
-                )
-
-            elif (
-                self.player_sprite.has_double_jump
-                and self.player_sprite.double_jump_available
-            ):
-                # Doble salto
-                self.player_sprite.change_y = PLAYER_JUMP_SPEED
-
-                # Gastar doble salto
+                self.player_sprite.jump_lock_timer = DOUBLE_JUMP_LOCK_TIME
                 self.player_sprite.double_jump_available = False
+                self.player_sprite.double_jump_used = False
+                self.jump_queued = False
 
                 arcade.play_sound(
                     self.jump_sound,
                     volume=SETTINGS.sfx_volume
                 )
-            elif self.player_sprite.wall_sliding:
+
+            elif self.jump_queued and self.player_sprite.has_double_jump:
+                if (
+                    self.player_sprite.double_jump_available
+                    and self.player_sprite.jump_lock_timer <= 0
+                ):
+                    # Doble salto
+                    self.player_sprite.change_y = PLAYER_JUMP_SPEED
+                    self.jump_queued = False
+
+                    # Gastar doble salto
+                    self.player_sprite.double_jump_available = False
+                    self.player_sprite.double_jump_used = True
+
+                    arcade.play_sound(
+                        self.jump_sound,
+                        volume=SETTINGS.sfx_volume
+                    )
+                elif self.player_sprite.jump_lock_timer > 0:
+                    pass
+                else:
+                    self.jump_queued = False
+            elif self.jump_queued and self.player_sprite.wall_sliding:
 
                 # Impulso vertical
                 self.player_sprite.change_y = WALL_JUMP_FORCE_Y
@@ -885,6 +946,12 @@ class GameView(arcade.View):
                 )
                 # Evitar volver a agarrarse instantáneamente
                 self.player_sprite.wall_jump_lock_timer = WALL_JUMP_LOCK_TIME
+                self.player_sprite.wall_jump_active = True
+                self.player_sprite.jump_lock_timer = DOUBLE_JUMP_LOCK_TIME
+                self.jump_queued = False
+
+            elif self.jump_queued:
+                self.jump_queued = False
 
         elif self.down_pressed and not self.up_pressed:
             if self.physics_engine.is_on_ladder():
@@ -939,6 +1006,8 @@ class GameView(arcade.View):
             return
 
         if key == SETTINGS.key_up:
+            if not self.up_pressed:
+                self.jump_queued = True
             self.up_pressed = True
             self.player_sprite.jump_pressed = True
         elif key == SETTINGS.key_down:
@@ -957,6 +1026,7 @@ class GameView(arcade.View):
             if (
                 self.player_sprite.has_dash
                 and self.player_sprite.dash_available
+                and self.player_sprite.dash_input_lock_timer <= 0
                 and not self.player_sprite.is_dashing
             ):
 
@@ -964,6 +1034,7 @@ class GameView(arcade.View):
                 self.player_sprite.dash_available = False
                 self.player_sprite.dash_timer = DASH_DURATION
                 self.player_sprite.dash_cooldown_timer = DASH_COOLDOWN
+                self.player_sprite.dash_input_lock_timer = DASH_INPUT_LOCK_TIME
 
                 # Dirección del dash
                 if self.player_sprite.facing_direction == RIGHT_FACING:
@@ -987,6 +1058,7 @@ class GameView(arcade.View):
         elif key == SETTINGS.key_up:
             self.up_pressed = False
             self.player_sprite.jump_pressed = False
+            self.jump_queued = False
 
         elif key == SETTINGS.key_down:
             self.down_pressed = False
@@ -1015,6 +1087,32 @@ class GameView(arcade.View):
             sound,
             volume=SETTINGS.sfx_volume
         )
+
+    def cancel_wall_jump_on_collision(self):
+        if not self.player_sprite.wall_jump_active:
+            return
+
+        if self.physics_engine.can_jump() or self.is_touching_wall():
+            self.player_sprite.wall_jump_active = False
+            self.player_sprite.wall_jump_lock_timer = 0
+            self.process_keychange()
+
+    def is_touching_wall(self):
+        self.player_sprite.center_x -= 2
+        touching_left = arcade.check_for_collision_with_list(
+            self.player_sprite,
+            self.platform_sprites
+        )
+
+        self.player_sprite.center_x += 4
+        touching_right = arcade.check_for_collision_with_list(
+            self.player_sprite,
+            self.platform_sprites
+        )
+
+        self.player_sprite.center_x -= 2
+
+        return bool(touching_left or touching_right)
 
     def keep_player_inside_map(self):
         if self.player_sprite.left < 0:
