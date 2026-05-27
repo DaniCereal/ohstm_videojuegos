@@ -15,10 +15,7 @@ from models.enemy import (
 )
 
 LEVELS = [
-    "../assets/Mapas/TierraArriba1.tmx",
-    "../assets/Mapas/TierraArriba2.tmx",
-    "../assets/Mapas/TierraArriba3.tmx",
-    "../assets/Mapas/SavePointTierra.tmx"
+    "../assets/Niveles/a.tmx",
 ]
 
 class GameView(arcade.View):
@@ -246,7 +243,10 @@ class GameView(arcade.View):
         # Add an empty bullet SpriteList to our scene
         self.scene.add_sprite_list("Bullets")
 
-        self.window.background_color = self.tile_map.background_color
+        if self.tile_map.background_color:
+            self.window.background_color = self.tile_map.background_color
+        else:
+            self.window.background_color = arcade.color.BLACK
 
     def on_show_view(self):
         self.window.ctx.viewport = (
@@ -438,7 +438,6 @@ class GameView(arcade.View):
             delta_time,
             [
                 "Coins",
-                "Background",
                 "Player",
                 "Enemies"
             ]

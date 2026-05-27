@@ -4,7 +4,7 @@
  <imagelayer id="2" name="Capa de Imagen 1">
   <image source="../Mapas/Tierra arriba.png" width="1280" height="736"/>
  </imagelayer>
- <layer id="8" name="Capa de patrones 1" width="40" height="23">
+ <layer id="8" name="Platforms" width="40" height="23">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

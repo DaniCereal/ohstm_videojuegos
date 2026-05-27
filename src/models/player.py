@@ -5,15 +5,20 @@ from constants import (
     LEFT_FACING
 )
 
+import arcade
 
 class PlayerCharacter(Character):
 
     def __init__(self):
 
         super().__init__(
-            "female_adventurer",
-            "femaleAdventurer"
         )
+
+        self.texture = arcade.load_texture(
+            "../assets/Sprites/Estatico.png"
+        )
+
+        self.scale = 1
 
         self.climbing = False
         self.should_update_walk = 0
@@ -34,7 +39,7 @@ class PlayerCharacter(Character):
         self.wall_jump_lock_timer = 0
 
     def update_animation(self, delta_time):
-
+        pass
         if (
             self.change_x < 0
             and self.facing_direction == RIGHT_FACING
