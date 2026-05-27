@@ -15,8 +15,9 @@ class PauseMenuView(arcade.View):
             ("Menú principal", self.go_main_menu),
         ]
 
+        # CAMBIAR PNG POR NUESTRO PERSONAJE
         self.character_texture = arcade.load_texture(
-            "../assets/Sprites/Estatico/Estatico_1.png"
+            ":resources:images/animated_characters/female_adventurer/femaleAdventurer_idle.png"
         )
 
     def on_draw(self):

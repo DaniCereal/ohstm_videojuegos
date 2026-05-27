@@ -1,7 +1,5 @@
 import arcade
 import math
-import xml.etree.ElementTree as ET
-from pathlib import Path
 
 from data.savegame import (
     DEFAULT_ENTRY_SIDE,
@@ -162,8 +160,6 @@ class GameView(arcade.View):
         self.end_of_map = 0
         self.map_width = 0
         self.map_height = 0
-        self.camera_map_width = 0
-        self.camera_map_height = 0
 
         # Should we reset the score?
         self.reset_score = False
@@ -207,7 +203,6 @@ class GameView(arcade.View):
             layer_options[layer_name] = {"use_spatial_hash": True}
 
         map_path = LEVEL_GRID[self.current_room]
-        self.map_path = map_path
 
         self.tile_map = arcade.load_tilemap(
             map_path,
@@ -357,25 +352,6 @@ class GameView(arcade.View):
             * self.tile_map.tile_height
             * self.tile_map.scaling
         )
-        self.camera_map_width = self.map_width
-        self.camera_map_height = self.map_height
-        self.calculate_camera_bounds_from_background()
-
-    def calculate_camera_bounds_from_background(self):
-        try:
-            root = ET.parse(Path(self.map_path)).getroot()
-        except (ET.ParseError, OSError):
-            return
-
-        image = root.find("./imagelayer/image")
-        if image is None:
-            return
-
-        try:
-            self.camera_map_width = float(image.attrib["width"])
-            self.camera_map_height = float(image.attrib["height"])
-        except (KeyError, ValueError):
-            return
 
     def place_player_at_entry(self):
         margin = 96
@@ -1057,25 +1033,25 @@ class GameView(arcade.View):
         viewport_width = self.window.width
         viewport_height = self.window.height
 
-        if self.camera_map_width <= viewport_width:
-            camera_x = self.camera_map_width / 2
+        if self.map_width <= viewport_width:
+            camera_x = self.map_width / 2
         else:
             camera_x = max(
                 viewport_width / 2,
                 min(
                     self.player_sprite.center_x,
-                    self.camera_map_width - viewport_width / 2
+                    self.map_width - viewport_width / 2
                 )
             )
 
-        if self.camera_map_height <= viewport_height:
-            camera_y = self.camera_map_height / 2
+        if self.map_height <= viewport_height:
+            camera_y = self.map_height / 2
         else:
             camera_y = max(
                 viewport_height / 2,
                 min(
                     self.player_sprite.center_y,
-                    self.camera_map_height - viewport_height / 2
+                    self.map_height - viewport_height / 2
                 )
             )
 
