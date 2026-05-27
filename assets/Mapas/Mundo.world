@@ -1,0 +1,20 @@
+{
+    "maps": [
+        {
+            "fileName": "TierraArriba1.tmx",
+            "height": 768,
+            "width": 1272,
+            "x": 0,
+            "y": 0
+        },
+        {
+            "fileName": "TierraArriba2.tmx",
+            "height": 768,
+            "width": 1272,
+            "x": 1272,
+            "y": 0
+        }
+    ],
+    "onlyShowAdjacentMaps": false,
+    "type": "world"
+}
