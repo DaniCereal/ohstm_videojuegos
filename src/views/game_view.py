@@ -572,7 +572,10 @@ class GameView(arcade.View):
         self.play_sfx(self.gameover_sound)
 
         if self.lives <= 0:
-            game_over = GameOverView(score=self.score)
+            if self.music_player:
+                self.music_player.delete()
+                self.music_player = None
+            game_over = GameOverView(score=self.score, game_view=self)
             self.window.show_view(game_over)
             return
 
@@ -1148,47 +1151,165 @@ class GameView(arcade.View):
         )
         self.window.show_view(new_game)
 
+_DEATH_PHRASES = [
+    "Hasta los dioses caen.",
+    "El Olimpo no se conquista en un día.",
+    "Incluso Aquiles tuvo un talón.",
+    "Hades ya te conoce. Vuelve diferente.",
+    "La gloria no se rinde.",
+    "Ni Zeus ganó sin perder antes.",
+    "El inframundo puede esperar.",
+    "Los héroes no mueren. Regresan.",
+    "Hermes cayó. Hermes volverá.",
+    "La muerte es solo un desvío.",
+]
+
+import random
+
 class GameOverView(arcade.View):
-    def __init__(self, score=0):
+    def __init__(self, score=0, game_view=None):
         super().__init__()
         self.score = score
+        self.game_view = game_view
+        self.selected_index = 0
+        self.font_name = "Garamond"
+        self.cream = (238, 230, 206)
+        self.muted = (176, 166, 142)
+        self.gold = (212, 165, 78)
+        self.phrase = random.choice(_DEATH_PHRASES)
+        self.options = [
+            ("Reintentar", self._retry),
+            ("Menu principal", self._go_menu),
+        ]
+        self.button_hitboxes = []
 
     def on_show_view(self):
-        self.window.background_color = arcade.color.BLACK
+        self.window.ctx.viewport = (0, 0, self.window.width, self.window.height)
 
     def on_draw(self):
-        self.clear()
+        if self.game_view:
+            self.game_view.on_draw()
+        else:
+            self.clear()
+
+        width = self.window.width
+        height = self.window.height
+        self.button_hitboxes = []
+
+        arcade.draw_rect_filled(arcade.LBWH(0, 0, width, height), (4, 6, 11, 195))
+
+        cx = width / 2
+        title_y = height * 0.66
+
         arcade.draw_text(
-            "Game Over",
-            self.window.width // 2,
-            self.window.height // 2 + 32,
-            arcade.color.WHITE,
-            30,
-            anchor_x="center"
+            "CAÍDO",
+            cx, title_y,
+            self.cream, 40,
+            anchor_x="center", anchor_y="center",
+            font_name=self.font_name,
         )
-        arcade.draw_text(
-            f"Score: {self.score}",
-            self.window.width // 2,
-            self.window.height // 2 - 6,
-            arcade.color.WHITE,
-            18,
-            anchor_x="center"
-        )
-        arcade.draw_text(
-            "Click para volver al menu",
-            self.window.width // 2,
-            self.window.height // 2 - 44,
-            arcade.color.WHITE,
-            16,
-            anchor_x="center"
+        arcade.draw_line(
+            cx - 80, title_y - 30,
+            cx + 80, title_y - 30,
+            (212, 165, 78, 80), 1,
         )
 
-    def on_mouse_press(self, _x, _y, _button, _modifiers):
+        arcade.draw_text(
+            self.phrase,
+            cx, title_y - 58,
+            self.muted, 16,
+            anchor_x="center", anchor_y="center",
+            font_name=self.font_name,
+            italic=True,
+        )
+
+        arcade.draw_text(
+            f"✦  {self.score}",
+            cx, height * 0.48,
+            self.gold, 20,
+            anchor_x="center", anchor_y="center",
+            font_name=self.font_name,
+        )
+
+        start_y = height * 0.38
+        gap = 58
+        for i, (label, _) in enumerate(self.options):
+            y = start_y - i * gap
+            self._draw_button(i, label, cx, y, i == self.selected_index)
+
+        arcade.draw_text(
+            "W S / flechas  ·  Enter  ·  Esc",
+            cx, 48,
+            self.muted, 15,
+            anchor_x="center", anchor_y="center",
+            font_name=self.font_name,
+        )
+
+    def _draw_button(self, index, label, x, y, selected):
+        btn_w = 300
+        btn_h = 46
+        left = x - btn_w / 2
+        right = x + btn_w / 2
+        bottom = y - btn_h / 2
+        top = y + btn_h / 2
+        self.button_hitboxes.append((index, left, right, bottom, top))
+
+        if selected:
+            arcade.draw_rect_filled(
+                arcade.LRBT(left, right, bottom, top),
+                (12, 16, 24, 42),
+            )
+            arcade.draw_rect_outline(
+                arcade.LRBT(left, right, bottom, top),
+                (199, 150, 69, 150), 2,
+            )
+
+        arcade.draw_text(
+            label, x, y,
+            (255, 247, 220) if selected else (222, 214, 190),
+            26 if selected else 24,
+            anchor_x="center", anchor_y="center",
+            font_name=self.font_name,
+        )
+
+    def on_key_press(self, key, modifiers):
+        if key in (arcade.key.UP, arcade.key.W):
+            self.selected_index = (self.selected_index - 1) % len(self.options)
+        elif key in (arcade.key.DOWN, arcade.key.S):
+            self.selected_index = (self.selected_index + 1) % len(self.options)
+        elif key == arcade.key.ESCAPE:
+            self.selected_index = 1
+            self._activate()
+        elif key in (arcade.key.ENTER, arcade.key.SPACE):
+            self._activate()
+
+    def on_mouse_motion(self, x, y, dx, dy):
+        for i, left, right, bottom, top in self.button_hitboxes:
+            if left <= x <= right and bottom <= y <= top:
+                self.selected_index = i
+                return
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        for i, left, right, bottom, top in self.button_hitboxes:
+            if left <= x <= right and bottom <= y <= top:
+                self.selected_index = i
+                self._activate()
+                return
+
+    def _activate(self):
+        _, action = self.options[self.selected_index]
+        action()
+
+    def _retry(self):
+        new_game = GameView()
+        self.window.show_view(new_game)
+
+    def _go_menu(self):
         from views.menu_view import MainMenu
-        self.window.show_view(MainMenu())
+        from views.transitions import FadeToView
+        self.window.show_view(FadeToView(self, MainMenu, duration=0.7))
 
     def on_resize(self, width, height):
-
         super().on_resize(width, height)
+        self.window.ctx.viewport = (0, 0, width, height)
 
-    
