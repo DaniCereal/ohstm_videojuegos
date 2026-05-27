@@ -3,8 +3,6 @@ Platformer Game.
 
 Basado en el tutorial de arcade: https://arcade.academy/examples/platform_tutorial.html#platform-tutorial
 """
-import math
-
 from pathlib import Path
 
 import arcade

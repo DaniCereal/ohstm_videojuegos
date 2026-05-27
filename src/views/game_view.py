@@ -5,8 +5,6 @@ from data.settings import SETTINGS
 
 from constants import *
 
-from data.settings import SETTINGS
-import cv2
 from models.player import PlayerCharacter
 
 from models.enemy import (
@@ -30,7 +28,7 @@ class GameView(arcade.View):
 
         self.level = level
         self.initialized = False
-        self.score = score
+
         # Track the current state of our input
         self.left_pressed = False
         self.right_pressed = False
@@ -57,7 +55,7 @@ class GameView(arcade.View):
         self.gui_camera = None
 
         # This variable will store our score as an integer.
-        self.score = 0
+        self.score = score
 
         # This variable will store the text for score that we will draw to the screen.
         self.score_text = None
@@ -171,30 +169,6 @@ class GameView(arcade.View):
                     enemy.change_x = enemy_marker.properties["change_x"]
 
                 self.scene.add_sprite("Enemies", enemy)
-
-                for enemy_marker in enemies_layer:
-                    coordinates = self.tile_map.get_cartesian(
-                        enemy_marker.shape[0], enemy_marker.shape[1]
-                    )
-                    enemy_type = enemy_marker.properties["type"]
-                    if enemy_type == "robot":
-                        enemy = RobotEnemy()
-                    elif enemy_type == "zombie":
-                        enemy = ZombieEnemy()
-                    enemy.center_x = math.floor(
-                        coordinates[0] * TILE_SCALING * self.tile_map.tile_width
-                    )
-                    enemy.center_y = math.floor(
-                        (coordinates[1] + 1) * (self.tile_map.tile_height * TILE_SCALING)
-                    )
-                    if "boundary_left" in enemy_marker.properties:
-                        enemy.boundary_left = enemy_marker.properties["boundary_left"]
-                    if "boundary_right" in enemy_marker.properties:
-                        enemy.boundary_right = enemy_marker.properties["boundary_right"]
-                    if "change_x" in enemy_marker.properties:
-                        enemy.change_x = enemy_marker.properties["change_x"]
-
-                    self.scene.add_sprite("Enemies", enemy)
 
         # Create a Platformer Physics Engine, this will handle moving our
         # player as well as collisions between the player sprite and
@@ -694,6 +668,20 @@ class GameView(arcade.View):
             sound,
             volume=SETTINGS.sfx_volume
         )
+    
+    def next_level(self):
+
+        next_level_number = self.level + 1
+
+        # Si no hay más niveles
+        if next_level_number > len(LEVELS):
+            print("Juego completado")
+            return
+
+        # Crear nuevo nivel
+        new_game = GameView(level=next_level_number, score=self.score)
+
+        self.window.show_view(new_game)
 
 class GameOverView(arcade.View):
     def on_show_view(self):
@@ -718,31 +706,4 @@ class GameOverView(arcade.View):
 
         super().on_resize(width, height)
 
-        self.camera.viewport = arcade.LRBT(
-            0,
-            width,
-            0,
-            height
-        )
-
-        
-        self.gui_camera.viewport = arcade.LRBT(
-            0,
-            width,
-            0,
-            height
-        )
-
-    def next_level(self):
-
-        next_level_number = self.level + 1
-
-        # Si no hay más niveles
-        if next_level_number > len(LEVELS):
-            print("Juego completado")
-            return
-
-        # Crear nuevo nivel
-        new_game = GameView(level=next_level_number, score=self.score)
-
-        self.window.show_view(new_game)
+    
