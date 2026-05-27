@@ -7,9 +7,28 @@ Nombre: Oh Hermes Send The Message
 Género: Plataformeo
 Subgénero: Metroidvania 
 
-Historia: En este juego controlas a Hermes, el mensajero de dioses. Eres solicitado por Zeus en el Olimpo urgentemente, pero por el camino eres víctima de una trampa de Hécate, echando un hechizo, el cual hace caer a Hermes al mundo terrenal, perdiendo por el camino todos sus poderes y habilidades. En el mundo terrenal es salvado por Dédalo, el padre de un joven llamado Ícaro. Mediante susurros de Dédalo y su hijo, se entera de que en realidad el inframundo está planeando revelarse y tomar el mundo terrenal e intentar llegar al Olimpo con ello. Hermes, decidido a ayudar vuelve las andadas, subiendo arriba de nuevo. 
+# Historia: 
+## Premisa
 
-Esta vez Hermes está indefenso, más que antes incluso, por lo que Dédalo le da un prototipo de las futuras alas que Ícaro llevará, gracias a ellas, puede recuperar sus alas, recuperando poco a poco sus habilidades y poderes
+El inframundo se encuentra al borde del colapso. Las almas ya no cruzan hacia el reino de los muertos y criaturas olvidadas comienzan a emerger desde las profundidades. Hermes, mensajero de los dioses y guardián de los caminos entre mundos, debe viajar entre el Olimpo, la Tierra y el Inframundo para restaurar el equilibrio antes de que los tres reinos se derrumben
+
+## Contexto
+
+Una fuerza desconocida está debilitando el poder de Hades, provocando el caos en el inframundo. Mientras los dioses olímpicos dudan sobre cómo actuar, Hecate intenta impedir que el conflicto empeore, atacando a Hermes durante el inicio de su misión.
+
+Tras ser derribado del cielo, Hermes cae al mundo terrenal gravemente herido
+
+## Desarrollo de la historia
+
+Hermes es rescatado por Dédalo, quien vive oculto tras la muerte de su hijo Icarus. Dédalo explica que Ícaro había creado unas plumas especiales capaces de almacenar poder divino
+
+A medida que Hermes recupera dichas plumas, obtiene nuevas habilidades de movilidad que le permiten continuar su viaje
+
+Tras regresar al Olimpo, Zeus revela que no puede intervenir directamente en el inframundo y encomienda a Hermes entregar un fragmento divino a Hades para restaurar sus poderes
+
+Durante el descenso al inframundo, Hermes descubre que el camino está bloqueado, obligándolo a regresar y obtener nuevas habilidades relacionadas con el legado de Ícaro
+
+Conforme avanza, Hermes descubre que el colapso del inframundo esconde una amenaza mucho más antigua que los propios dioses olímpicos
 
 Objetivos: 
     - Recuperar las habilidades de hermes
@@ -17,25 +36,32 @@ Objetivos:
     - Una vez obtenido la ayuda de Zeus, te comenta que en realidad son los propios seres infernales los que intentan revelarse, mermando la fuerza de Hades quien quiere evitarlo
     - Se debe bajar al infierno para conseguir apoyar a Hades y terminar de una vez por todas con el caos infernal
 
-Personajes:
-    - Hermes
-    - Zeus
-    - Hades
-    - Dédalo
-    - Ícaro
-    - Hécate (mención?)
-    - Cerverus
-    - El barquero Caronte
+# Personajes principales
+## Hermes
+Protagonista del juego. Mensajero de los dioses y viajero entre reinos
 
-Estética: 2D pixel art
+## Dédalo
+Inventor legendario que ayuda a Hermes y le enseña a utilizar las plumas de Ícaro
+
+## Icarus
+Aunque fallecido antes de los eventos del juego, su legado y sus inventos impulsan la progresión del jugador
+
+## Zeus
+Gobernante del Olimpo. Incapaz de intervenir directamente en el inframundo
+
+## Hecate
+Figura ambigua que intenta impedir el avance de Hermes por motivos inicialmente desconocidos
+
+## Hades
+Dios del inframundo debilitado por el colapso de su reino
+
+# Estética
+2D pixel art
 
 Mecánicas:
     - Doble Salto
     - Dash
     - Walljump
-    - Velocidad
-    - Abrir puertas
-    - Mecanicas del mundo dependiendo del escenario (Infierno controles invertidos, Cielo nubes que saltes más, etc)
 
 Escenarios:
     - Olimpo: Música tranquila, armónica, escenarios con colores agradables y claros
