@@ -1,6 +1,9 @@
 import arcade
 import math
 import random
+import textwrap
+import unicodedata
+from pathlib import Path
 
 from data.savegame import (
     DEFAULT_ENTRY_SIDE,
@@ -72,8 +75,18 @@ SAFE_ROOM_ENTRANCES = {
     (2, 2): {"right"},
 }
 
-SIDE_EXIT_MARGIN = 0.1
+SIDE_EXIT_MARGIN = 10
 FALL_VOID_MARGIN = 20
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DAEDALUS_ROOM = (2, 1)
+DAEDALUS_POSITION = (300, 170)
+DIALOGUE_INTERACT_DISTANCE = 96
+DIALOGUE_PATH = PROJECT_ROOT / "docs" / "Dialogues" / "DedaloFirstTimeMeet"
+DEDALO_VOICE_DIR = PROJECT_ROOT / "assets" / "VSX" / "Dedalo"
+HERMES_SPEAKING_DIR = PROJECT_ROOT / "assets" / "VSX" / "Hermes" / "HermesSpeaking"
+HERMES_MOVEMENT_DIR = PROJECT_ROOT / "assets" / "VSX" / "Hermes" / "Movement"
+SPAWN_OBJECT_LAYER_NAMES = ("Spawns", "Spawn", "PlayerSpawns", "Player Spawns")
 
 PLATFORM_LAYER_CANDIDATES = (
     "Platforms",
@@ -96,6 +109,7 @@ class GameView(arcade.View):
         load_from_save=False,
         inherited_music=None,
         inherited_music_player=None,
+        daedalus_dialogue_complete=False,
     ):
 
         # Call the parent class and set up the window
@@ -107,10 +121,12 @@ class GameView(arcade.View):
                 room_position = save_data["room"]
                 entry_side = save_data["entry_side"]
                 score = save_data["score"]
+                daedalus_dialogue_complete = save_data["daedalus_dialogue_complete"]
             else:
                 room_position = DEFAULT_ROOM
                 entry_side = DEFAULT_ENTRY_SIDE
                 score = 0
+                daedalus_dialogue_complete = False
             lives = MAX_LIVES
 
         if room_position is None:
@@ -152,6 +168,8 @@ class GameView(arcade.View):
         self.enemy_sprites = None
         self.coin_sprites = None
         self.bullet_sprites = None
+        self.npc_sprites = None
+        self.daedalus_npc = None
 
         # A variable to store our camera object
         self.camera = None
@@ -182,6 +200,14 @@ class GameView(arcade.View):
         # Music (puede heredarse de la sala anterior si es el mismo track)
         self.music = inherited_music
         self.music_player = inherited_music_player
+        self.dialogue_lines = []
+        self.active_dialogue_lines = []
+        self.dialogue_active = False
+        self.dialogue_index = 0
+        self.daedalus_dialogue_complete = daedalus_dialogue_complete
+        self.voice_player = None
+        self.voice_sounds = {}
+        self.hermes_movement_sounds = []
 
         # Load sounds
         self.collect_coin_sound = arcade.load_sound(":resources:sounds/coin1.wav")
@@ -233,7 +259,9 @@ class GameView(arcade.View):
         self.coin_sprites = self.ensure_sprite_list("Coins")
         self.moving_platform_sprites = self.ensure_sprite_list("Moving Platforms")
         self.ladder_sprites = self.ensure_sprite_list("Ladders")
+        self.npc_sprites = self.ensure_sprite_list("NPCs")
         self.calculate_map_bounds()
+        self.load_voice_assets()
 
         self.player_sprite = PlayerCharacter()
         # TEMPORAL PARA TEST
@@ -293,6 +321,8 @@ class GameView(arcade.View):
                 )
 
                 self.scene.add_sprite("Enemies", enemy)
+
+        self.add_room_npcs()
 
         # Create a Platformer Physics Engine, this will handle moving our
         # player as well as collisions between the player sprite and
@@ -355,6 +385,174 @@ class GameView(arcade.View):
         self.scene.add_sprite_list("Platforms")
         return self.scene["Platforms"]
 
+    def load_voice_assets(self):
+        self.dialogue_lines = self.load_dialogue(DIALOGUE_PATH)
+        self.voice_sounds = {
+            "dedalo": self.load_sound_folder(DEDALO_VOICE_DIR),
+            "hermes": self.load_sound_folder(HERMES_SPEAKING_DIR),
+        }
+        self.hermes_movement_sounds = self.load_sound_folder(HERMES_MOVEMENT_DIR)
+
+    @staticmethod
+    def load_sound_folder(folder_path):
+        if not folder_path.exists():
+            return []
+
+        sound_paths = sorted(
+            folder_path.glob("*.mp3"),
+            key=GameView.natural_path_key,
+        )
+        return [arcade.load_sound(str(path)) for path in sound_paths]
+
+    @staticmethod
+    def natural_path_key(path):
+        stem = path.stem
+        digits = "".join(character for character in stem if character.isdigit())
+        return int(digits) if digits else stem
+
+    @staticmethod
+    def normalize_speaker(speaker):
+        if not speaker:
+            return ""
+
+        text = unicodedata.normalize("NFKD", speaker)
+        text = "".join(character for character in text if not unicodedata.combining(character))
+        return text.lower().strip()
+
+    @staticmethod
+    def load_dialogue(dialogue_path):
+        if not dialogue_path.exists():
+            return []
+
+        lines = []
+        current_speaker = None
+        current_text = []
+
+        def flush_current_line():
+            nonlocal current_text
+            if current_text:
+                lines.append(
+                    {
+                        "speaker": current_speaker,
+                        "text": " ".join(current_text).strip(),
+                    }
+                )
+                current_text = []
+
+        for raw_line in dialogue_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line:
+                flush_current_line()
+                current_speaker = None
+                continue
+
+            if line.endswith(":") and len(line) <= 32:
+                flush_current_line()
+                current_speaker = line[:-1].strip()
+            else:
+                current_text.append(line)
+
+        flush_current_line()
+        return lines
+
+    def add_room_npcs(self):
+        if self.current_room != DAEDALUS_ROOM:
+            return
+
+        self.daedalus_npc = arcade.Sprite(
+            ":resources:images/animated_characters/male_person/malePerson_idle.png",
+            scale=0.8,
+        )
+        self.daedalus_npc.center_x = DAEDALUS_POSITION[0]
+        self.daedalus_npc.center_y = DAEDALUS_POSITION[1]
+        self.resolve_sprite_position(
+            self.daedalus_npc,
+            DAEDALUS_POSITION[0],
+            DAEDALUS_POSITION[1],
+            prefer_floor=True,
+            search_margin=48,
+        )
+        self.scene.add_sprite("NPCs", self.daedalus_npc)
+
+    def can_talk_to_daedalus(self):
+        if not self.daedalus_npc:
+            return False
+
+        distance = math.hypot(
+            self.player_sprite.center_x - self.daedalus_npc.center_x,
+            self.player_sprite.center_y - self.daedalus_npc.center_y,
+        )
+        return distance <= DIALOGUE_INTERACT_DISTANCE
+
+    def start_daedalus_dialogue(self):
+        if not self.dialogue_lines:
+            return
+
+        if self.daedalus_dialogue_complete:
+            self.active_dialogue_lines = [self.dialogue_lines[-1]]
+        else:
+            self.active_dialogue_lines = self.dialogue_lines
+
+        self.dialogue_active = True
+        self.dialogue_index = 0
+        self.player_sprite.change_x = 0
+        self.player_sprite.change_y = 0
+        self.play_current_dialogue_voice()
+
+    def advance_dialogue(self):
+        if not self.dialogue_active:
+            return
+
+        self.dialogue_index += 1
+        if self.dialogue_index >= len(self.active_dialogue_lines):
+            self.dialogue_active = False
+            self.daedalus_dialogue_complete = True
+            self.stop_dialogue_voice()
+            return
+
+        self.play_current_dialogue_voice()
+
+    def current_dialogue_line(self):
+        if not self.dialogue_active:
+            return None
+
+        return self.active_dialogue_lines[self.dialogue_index]
+
+    def play_current_dialogue_voice(self):
+        line = self.current_dialogue_line()
+        if not line:
+            return
+
+        self.stop_dialogue_voice()
+        speaker = self.normalize_speaker(line["speaker"])
+        sounds = self.voice_sounds.get(speaker, [])
+        if not sounds:
+            return
+
+        self.voice_player = arcade.play_sound(
+            random.choice(sounds),
+            volume=SETTINGS.voice_volume,
+        )
+
+    def stop_dialogue_voice(self):
+        if not self.voice_player:
+            return
+
+        self.voice_player.delete()
+        self.voice_player = None
+
+    def maybe_play_movement_voice(self):
+        if not self.hermes_movement_sounds:
+            return
+
+        if random.randint(1, 10) != 1:
+            return
+
+        arcade.play_sound(
+            random.choice(self.hermes_movement_sounds),
+            volume=SETTINGS.voice_volume,
+        )
+
     def calculate_map_bounds(self):
         self.end_of_map = (self.tile_map.width * self.tile_map.tile_width)
         self.end_of_map *= self.tile_map.scaling
@@ -367,6 +565,14 @@ class GameView(arcade.View):
 
     def place_player_at_entry(self):
         margin = 96
+        tiled_spawn = self.spawn_from_tiled()
+        if tiled_spawn:
+            self.player_sprite.center_x, self.player_sprite.center_y = tiled_spawn
+            self.player_sprite.change_x = 0
+            self.player_sprite.change_y = 0
+            self.resolve_spawn_collision(margin)
+            return
+
         center_y = max(margin, min(128, self.map_height - margin))
 
         if self.entry_side == "right":
@@ -389,45 +595,90 @@ class GameView(arcade.View):
     def resolve_spawn_collision(self, margin):
         start_x = self.player_sprite.center_x
         start_y = self.player_sprite.center_y
-        x_candidates = self.spawn_x_candidates(start_x, margin)
-        y_step = max(8, self.tile_map.tile_height * self.tile_map.scaling / 4)
-        max_y = self.map_height - margin / 2
+        self.resolve_sprite_position(
+            self.player_sprite,
+            start_x,
+            start_y,
+            prefer_floor=True,
+            search_margin=margin / 2,
+        )
+
+    def resolve_sprite_position(
+        self,
+        sprite,
+        start_x,
+        start_y,
+        prefer_floor=False,
+        search_margin=48,
+    ):
+        x_candidates = self.spawn_x_candidates(start_x, search_margin)
+        y_candidates = self.spawn_y_candidates(start_y, search_margin)
+        free_candidates = []
+        supported_candidates = []
 
         for x in x_candidates:
-            self.player_sprite.center_x = x
-            self.player_sprite.center_y = start_y
+            for y in y_candidates:
+                sprite.center_x = x
+                sprite.center_y = y
+                if arcade.check_for_collision_with_list(sprite, self.platform_sprites):
+                    continue
 
-            while self.player_sprite.center_y <= max_y:
-                if not arcade.check_for_collision_with_list(
-                    self.player_sprite,
-                    self.platform_sprites
-                ):
-                    return
+                score = abs(x - start_x) + abs(y - start_y)
+                candidate = (score, x, y)
+                if self.has_ground_below(sprite):
+                    supported_candidates.append(candidate)
+                else:
+                    free_candidates.append(candidate)
 
-                self.player_sprite.center_y += y_step
+        candidates = supported_candidates if prefer_floor and supported_candidates else free_candidates
+        if candidates:
+            _, x, y = min(candidates, key=lambda candidate: candidate[0])
+            sprite.center_x = x
+            sprite.center_y = y
+            return
 
-        self.player_sprite.center_x = min(
-            max(start_x, margin),
-            self.map_width - margin
-        )
-        self.player_sprite.center_y = max_y
+        sprite.center_x = min(max(start_x, search_margin), self.map_width - search_margin)
+        sprite.center_y = min(max(start_y, search_margin), self.map_height - search_margin)
 
     def spawn_x_candidates(self, start_x, margin):
         step = max(16, self.tile_map.tile_width * self.tile_map.scaling / 2)
-        max_offset = min(self.map_width / 3, 360)
+        max_offset = max(self.map_width, self.map_height)
 
         if self.entry_side == "right":
-            offsets = [0] + [-(offset) for offset in self.spawn_offsets(step, max_offset)]
+            ordered_offsets = self.spawn_offsets(step, max_offset)
+            offsets = [0] + [-offset for offset in ordered_offsets] + ordered_offsets
         elif self.entry_side == "left":
-            offsets = [0] + self.spawn_offsets(step, max_offset)
+            ordered_offsets = self.spawn_offsets(step, max_offset)
+            offsets = [0] + ordered_offsets + [-offset for offset in ordered_offsets]
         else:
-            offsets = [0]
+            offsets = self.bidirectional_spawn_offsets(step, max_offset)
 
         candidates = []
         for offset in offsets:
             x = min(max(start_x + offset, margin), self.map_width - margin)
             if x not in candidates:
                 candidates.append(x)
+
+        return candidates
+
+    def spawn_y_candidates(self, start_y, margin):
+        step = max(8, self.tile_map.tile_height * self.tile_map.scaling / 4)
+        max_offset = max(self.map_width, self.map_height)
+
+        if self.entry_side == "top":
+            ordered_offsets = self.spawn_offsets(step, max_offset)
+            offsets = [0] + [-offset for offset in ordered_offsets] + ordered_offsets
+        elif self.entry_side in ("bottom", "left", "right"):
+            ordered_offsets = self.spawn_offsets(step, max_offset)
+            offsets = [0] + ordered_offsets + [-offset for offset in ordered_offsets]
+        else:
+            offsets = self.bidirectional_spawn_offsets(step, max_offset)
+
+        candidates = []
+        for offset in offsets:
+            y = min(max(start_y + offset, margin), self.map_height - margin)
+            if y not in candidates:
+                candidates.append(y)
 
         return candidates
 
@@ -440,6 +691,68 @@ class GameView(arcade.View):
             offset += step
 
         return offsets
+
+    @staticmethod
+    def bidirectional_spawn_offsets(step, max_offset):
+        offsets = [0]
+        for offset in GameView.spawn_offsets(step, max_offset):
+            offsets.extend((offset, -offset))
+
+        return offsets
+
+    def has_ground_below(self, sprite):
+        original_y = sprite.center_y
+        sprite.center_y -= max(4, self.tile_map.tile_height * self.tile_map.scaling / 8)
+        has_ground = arcade.check_for_collision_with_list(sprite, self.platform_sprites)
+        sprite.center_y = original_y
+        return has_ground
+
+    def spawn_from_tiled(self):
+        if not self.tile_map.object_lists:
+            return None
+
+        for layer_name in SPAWN_OBJECT_LAYER_NAMES:
+            if layer_name not in self.tile_map.object_lists:
+                continue
+
+            fallback_spawn = None
+            for marker in self.tile_map.object_lists[layer_name]:
+                marker_side = self.spawn_marker_side(marker)
+                spawn_position = self.spawn_marker_position(marker)
+                if marker_side == self.entry_side:
+                    return spawn_position
+                if marker_side in ("default", "start") and fallback_spawn is None:
+                    fallback_spawn = spawn_position
+
+            if fallback_spawn:
+                return fallback_spawn
+
+        return None
+
+    @staticmethod
+    def spawn_marker_side(marker):
+        properties = marker.properties or {}
+        for value in (
+            properties.get("entry_side"),
+            properties.get("side"),
+            properties.get("spawn"),
+            getattr(marker, "name", None),
+            getattr(marker, "type", None),
+        ):
+            if value:
+                return str(value).strip().lower()
+
+        return None
+
+    def spawn_marker_position(self, marker):
+        coordinates = self.tile_map.get_cartesian(
+            marker.shape[0],
+            marker.shape[1],
+        )
+        return (
+            math.floor(coordinates[0] * TILE_SCALING * self.tile_map.tile_width),
+            math.floor((coordinates[1] + 1) * TILE_SCALING * self.tile_map.tile_height),
+        )
 
     def connected_room(self, side):
         explicit_connection = ROOM_CONNECTIONS.get(self.current_room, {}).get(side)
@@ -483,14 +796,14 @@ class GameView(arcade.View):
 
     def handle_room_exits(self):
         if (
-            self.player_sprite.change_x < 0
-            and self.player_sprite.left <= SIDE_EXIT_MARGIN
+            self.left_pressed
+            and self.player_sprite.center_x <= SIDE_EXIT_MARGIN
         ):
             return self.try_exit_room("left")
 
         if (
-            self.player_sprite.change_x > 0
-            and self.player_sprite.right >= self.map_width - SIDE_EXIT_MARGIN
+            self.right_pressed
+            and self.player_sprite.center_x >= self.map_width - SIDE_EXIT_MARGIN
         ):
             return self.try_exit_room("right")
 
@@ -552,6 +865,7 @@ class GameView(arcade.View):
             entry_side=entry_side,
             inherited_music=inherited_music,
             inherited_music_player=inherited_player,
+            daedalus_dialogue_complete=self.daedalus_dialogue_complete,
         )
         self.window.show_view(new_game)
 
@@ -563,7 +877,8 @@ class GameView(arcade.View):
             self.entry_side,
             score=self.score,
             lives=self.lives,
-            has_checkpoint=True
+            has_checkpoint=True,
+            daedalus_dialogue_complete=self.daedalus_dialogue_complete,
         )
         self.play_sfx(self.collect_coin_sound)
         self.place_player_at_entry()
@@ -640,6 +955,8 @@ class GameView(arcade.View):
         self.gui_camera.use()
 
         self._draw_hud()
+        self._draw_interaction_prompt()
+        self._draw_dialogue_box()
 
     def _draw_hud(self):
         h = self.window.height
@@ -668,8 +985,84 @@ class GameView(arcade.View):
             font_name=font,
         )
 
+    def _draw_interaction_prompt(self):
+        if self.dialogue_active or not self.can_talk_to_daedalus():
+            return
+
+        arcade.draw_text(
+            "E",
+            self.window.width / 2,
+            82,
+            (255, 247, 220),
+            18,
+            anchor_x="center",
+            anchor_y="center",
+            font_name="Garamond",
+            bold=True,
+        )
+
+    def _draw_dialogue_box(self):
+        line = self.current_dialogue_line()
+        if not line:
+            return
+
+        box_margin = 42
+        box_height = 154
+        box_y = 34
+        box_width = self.window.width - box_margin * 2
+        box = arcade.LBWH(box_margin, box_y, box_width, box_height)
+        arcade.draw_rect_filled(box, (8, 10, 17, 224))
+        arcade.draw_rect_outline(box, (212, 165, 78, 210), 2)
+
+        text_x = box_margin + 28
+        text_y = box_y + box_height - 34
+        speaker = line["speaker"]
+        if speaker:
+            arcade.draw_text(
+                speaker,
+                text_x,
+                text_y,
+                (212, 165, 78),
+                18,
+                anchor_x="left",
+                anchor_y="center",
+                font_name="Garamond",
+                bold=True,
+            )
+            text_y -= 34
+
+        for wrapped_line in textwrap.wrap(line["text"], width=86):
+            arcade.draw_text(
+                wrapped_line,
+                text_x,
+                text_y,
+                (238, 230, 206),
+                17,
+                anchor_x="left",
+                anchor_y="center",
+                font_name="Garamond",
+            )
+            text_y -= 24
+
+        arcade.draw_text(
+            "Enter / Espacio",
+            box_margin + box_width - 28,
+            box_y + 18,
+            (176, 166, 142),
+            13,
+            anchor_x="right",
+            anchor_y="center",
+            font_name="Garamond",
+        )
+
     def on_update(self, delta_time):
         """Movement and Game Logic"""
+
+        if self.dialogue_active:
+            self.player_sprite.change_x = 0
+            self.player_sprite.change_y = 0
+            self.scene.update_animation(delta_time, ["Player", "NPCs"])
+            return
 
         # --- WALL JUMP LOCK TIMER ---
         was_wall_jump_locked = self.player_sprite.wall_jump_lock_timer > 0
@@ -974,6 +1367,7 @@ class GameView(arcade.View):
                     self.jump_sound,
                     volume=SETTINGS.sfx_volume
                 )
+                self.maybe_play_movement_voice()
 
             elif self.jump_queued and self.player_sprite.has_double_jump:
                 if (
@@ -992,6 +1386,7 @@ class GameView(arcade.View):
                         self.jump_sound,
                         volume=SETTINGS.sfx_volume
                     )
+                    self.maybe_play_movement_voice()
                 elif self.player_sprite.jump_lock_timer > 0:
                     pass
                 else:
@@ -1011,6 +1406,7 @@ class GameView(arcade.View):
                     self.jump_sound,
                     volume=SETTINGS.sfx_volume
                 )
+                self.maybe_play_movement_voice()
                 # Evitar volver a agarrarse instantáneamente
                 self.player_sprite.wall_jump_lock_timer = WALL_JUMP_LOCK_TIME
                 self.player_sprite.wall_jump_active = True
@@ -1056,6 +1452,18 @@ class GameView(arcade.View):
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed."""
 
+        if self.dialogue_active:
+            if key in (arcade.key.ENTER, arcade.key.SPACE):
+                self.advance_dialogue()
+            elif key == arcade.key.ESCAPE:
+                self.dialogue_active = False
+                self.stop_dialogue_voice()
+            return
+
+        if key == arcade.key.E and self.can_talk_to_daedalus():
+            self.start_daedalus_dialogue()
+            return
+
         if key == SETTINGS.key_pause:
             from views.pause_view import PauseMenuView
             self.window.show_view(PauseMenuView(self))
@@ -1068,6 +1476,7 @@ class GameView(arcade.View):
                 lives=self.lives,
                 room_position=self.current_room,
                 entry_side=self.entry_side,
+                daedalus_dialogue_complete=self.daedalus_dialogue_complete,
             )
             self.window.show_view(new_game)
             return
@@ -1111,6 +1520,7 @@ class GameView(arcade.View):
 
                 # Quitar velocidad vertical
                 self.player_sprite.change_y = 0
+                self.maybe_play_movement_voice()
 
         self.process_keychange()
 

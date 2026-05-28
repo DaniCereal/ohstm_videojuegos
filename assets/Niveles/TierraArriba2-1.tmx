@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="40" height="23" tilewidth="32" tileheight="32" infinite="0" nextlayerid="3" nextobjectid="1">
  <tileset firstgid="1" name="Tileset_Tierra" tilewidth="32" tileheight="32" tilecount="96" columns="12">
-  <image source="../Mapas/Tileset_Tierra.png" width="384" height="256"/>
+  <image source="../Mapas/Tileset_tierra.png" width="384" height="256"/>
   <tile id="0">
    <objectgroup>
     <object id="1" type="Platform" x="0" y="0" width="32" height="32"/>
@@ -10,7 +10,6 @@
   <tile id="1">
    <objectgroup draworder="index" id="2">
     <object id="1" type="Platform" x="0" y="0" width="32" height="32"/>
-    <object id="2" x="0" y="0" width="32" height="32"/>
    </objectgroup>
   </tile>
   <tile id="2">
