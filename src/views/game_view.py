@@ -1574,14 +1574,9 @@ class GameView(arcade.View):
         width = self.window.width
         height = self.window.height
 
-        for y in range(0, height, 4):
+        for y in range(0, height, 8):
             arcade.draw_rect_filled(
                 arcade.LBWH(0, y, width, 2),
-                (0, 0, 0, 50)
-            )
-        for x in range(0, width, 4):
-            arcade.draw_rect_filled(
-                arcade.LBWH(x, 0, 2, height),
                 (0, 0, 0, 50)
             )
 
