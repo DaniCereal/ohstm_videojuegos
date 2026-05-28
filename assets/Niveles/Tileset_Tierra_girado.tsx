@@ -359,7 +359,6 @@
  <tile id="95">
   <objectgroup draworder="index" id="2">
    <object id="1" type="Platform" x="0" y="0" width="32" height="32"/>
-   <object id="2" type="Platform" x="0" y="0" width="32" height="32"/>
   </objectgroup>
  </tile>
 </tileset>

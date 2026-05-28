@@ -16,6 +16,7 @@ def default_save():
         "score": 0,
         "lives": MAX_LIVES,
         "has_checkpoint": False,
+        "daedalus_dialogue_complete": False,
     }
 
 
@@ -34,6 +35,9 @@ def load_save():
             "score": int(data.get("score", 0)),
             "lives": int(data.get("lives", MAX_LIVES)),
             "has_checkpoint": bool(data.get("has_checkpoint", False)),
+            "daedalus_dialogue_complete": bool(
+                data.get("daedalus_dialogue_complete", False)
+            ),
         }
     except (FileNotFoundError, json.JSONDecodeError, TypeError, ValueError):
         data = default_save()
@@ -47,13 +51,21 @@ def load_save():
         return load_save()
 
 
-def save_game(room, entry_side, score=0, lives=MAX_LIVES, has_checkpoint=True):
+def save_game(
+    room,
+    entry_side,
+    score=0,
+    lives=MAX_LIVES,
+    has_checkpoint=True,
+    daedalus_dialogue_complete=False,
+):
     data = {
         "room": [int(room[0]), int(room[1])],
         "entry_side": entry_side,
         "score": int(score),
         "lives": int(lives),
         "has_checkpoint": bool(has_checkpoint),
+        "daedalus_dialogue_complete": bool(daedalus_dialogue_complete),
     }
 
     with open(SAVE_PATH, "w", encoding="utf-8") as file:
