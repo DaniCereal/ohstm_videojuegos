@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <tileset version="1.10" tiledversion="1.12.1" name="Tileset_Tierra_girado" tilewidth="32" tileheight="32" tilecount="96" columns="8">
- <image source="../../../Desktop/Tileset_Tierra_girado.png" width="256" height="384"/>
+ <image source="../Mapas/Tileset_Tierra_girado.png" width="256" height="384"/>
  <tile id="2">
   <objectgroup>
    <object id="1" type="Platform" x="0" y="0" width="32" height="32"/>
