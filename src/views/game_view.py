@@ -957,6 +957,7 @@ class GameView(arcade.View):
         self._draw_hud()
         self._draw_interaction_prompt()
         self._draw_dialogue_box()
+        self.draw_crt_filter()
 
     def _draw_hud(self):
         h = self.window.height
@@ -1567,6 +1568,26 @@ class GameView(arcade.View):
         arcade.play_sound(
             sound,
             volume=SETTINGS.sfx_volume
+        )
+
+    def draw_crt_filter(self):
+        width = self.window.width
+        height = self.window.height
+
+        for y in range(0, height, 4):
+            arcade.draw_rect_filled(
+                arcade.LBWH(0, y, width, 2),
+                (0, 0, 0, 50)
+            )
+        for x in range(0, width, 4):
+            arcade.draw_rect_filled(
+                arcade.LBWH(x, 0, 2, height),
+                (0, 0, 0, 50)
+            )
+
+        arcade.draw_rect_filled(
+            arcade.LBWH(0, 0, width, height),
+            (24, 12, 32, 45)
         )
 
     def cancel_wall_jump_on_collision(self):
