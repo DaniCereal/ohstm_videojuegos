@@ -2,6 +2,8 @@ import arcade
 
 from data.settings import SETTINGS
 
+LOGO_HEIGHT = 160
+
 
 class CreditsView(arcade.View):
     """
@@ -30,23 +32,44 @@ class CreditsView(arcade.View):
         self.scroll_offset = 0
         self.scroll_finished = False
 
+        self.logo_game = arcade.load_texture("../assets/images/LogoNoBackground.png")
+        try:
+            self.logo_uah = arcade.load_texture("../assets/images/LogoUAH.png")
+        except Exception:
+            self.logo_uah = None
+
         self.credits_text = [
             ("OH HERMES SEND THE MESSAGE", "title"),
             ("", "space"),
+            ("Un juego de mitologia griega", "subtitle"),
+            ("", "space"),
+            ("", "space"),
             ("DESARROLLO", "section"),
             ("Programador: Daniel Silva Moratilla", "normal"),
-            ("Disenadores: Brayan Cotoara Moya & Luis Azana Soriano", "normal"),
+            ("Disenador: Brayan Cotoara Moya", "normal"),
+            ("Disenador: Luis Azana Soriano", "normal"),
             ("Artista: Daniel Cordos Iloie", "normal"),
             ("", "space"),
-            ("ASSETS", "section"),
-            ("Sprites: [Fuente de sprites]", "normal"),
-            ("Musica: Suno & Audacity", "normal"),
-            ("Efectos de sonido: Suno", "normal"),
-            ("Video: [Fuente de video]", "normal"),
+            ("DISENO DE NIVELES", "section"),
+            ("Brayan Cotoara Moya", "normal"),
+            ("Luis Azana Soriano", "normal"),
             ("", "space"),
-            ("TECNOLOGIAS", "section"),
-            ("Motor: Arcade Python Library", "normal"),
+            ("MUSICA Y SONIDO", "section"),
+            ("Composicion: Suno AI", "normal"),
+            ("Edicion de audio: Audacity", "normal"),
+            ("Efectos de sonido: Suno AI", "normal"),
+            ("", "space"),
+            ("ARTE Y GRAFICOS", "section"),
+            ("Sprites de personajes: Daniel Cordos Iloie", "normal"),
+            ("Tilesets: [Fuente de tilesets]", "normal"),
+            ("Diseno de interfaz: Brayan Cotoara Moya", "normal"),
+            ("", "space"),
+            ("HERRAMIENTAS Y TECNOLOGIAS", "section"),
+            ("Motor: Python Arcade Library 3.x", "normal"),
             ("Lenguaje: Python 3.12", "normal"),
+            ("Editor de mapas: Tiled Map Editor", "normal"),
+            ("Control de versiones: Git & GitHub", "normal"),
+            ("IDE: Visual Studio Code", "normal"),
             ("", "space"),
             ("AGRADECIMIENTOS", "section"),
             ("Tutorial base: arcade.academy", "normal"),
@@ -54,26 +77,50 @@ class CreditsView(arcade.View):
             ("Familia y amigos por el apoyo", "normal"),
             ("", "space"),
             ("AGRADECIMIENTOS ESPECIALES", "section"),
-            ("David Francisco Barrero", "normal"),
-            ("[Otro agradecimiento]", "normal"),
+            ("David F Barrero", "normal"),
+            ("Por su tutoria y apoyo durante el desarrollo", "small"),
+            ("", "space"),
+            ("CONTEXTO ACADEMICO", "section"),
+            ("Universidad de Alcala", "normal"),
+            ("Grado en Tecnologia de Videojuegos", "normal"),
+            ("Proyecto de la asignatura de Videojuegos", "normal"),
+            ("Curso academico 2025 - 2026", "normal"),
+            ("", "space"),
             ("", "space"),
             ("Version: 1.0.0", "small"),
-            ("2024 [Tu Nombre Aqui]", "small"),
+            ("2026 Oh Hermes Send The Message", "small"),
+            ("Todos los derechos reservados", "small"),
+            ("", "space"),
             ("", "space"),
             ("FIN DE LOS CREDITOS", "final"),
+            ("", "space"),
+            ("", "space"),
+            ("", "space"),
+            ("game", "logo"),
+            ("", "space"),
+            ("uah", "logo"),
+            ("", "space"),
+            ("", "space"),
         ]
 
         self.total_scroll_height = self._calculate_total_height()
 
     def _calculate_total_height(self):
         total = 0
-        for line, _style in self.credits_text:
-            total += self.line_spacing * (0.75 if line == "" else 1)
+        for line, style in self.credits_text:
+            if style == "logo":
+                total += LOGO_HEIGHT
+            elif line == "":
+                total += self.line_spacing * 0.75
+            else:
+                total += self.line_spacing
         return total
 
     def _line_style(self, style):
         if style == "title":
             return self.bone, 40, True
+        if style == "subtitle":
+            return (210, 190, 145), 22, False
         if style == "section":
             return self.sky, 30, True
         if style == "final":
@@ -106,6 +153,20 @@ class CreditsView(arcade.View):
         for line, style in self.credits_text:
             if line == "":
                 current_y -= self.line_spacing * 0.75
+                continue
+
+            if style == "logo":
+                if -LOGO_HEIGHT <= current_y <= height + LOGO_HEIGHT:
+                    logo_tex = self.logo_game if line == "game" else self.logo_uah
+                    if logo_tex:
+                        scale = min(LOGO_HEIGHT / logo_tex.height, (width * 0.45) / logo_tex.width)
+                        draw_w = logo_tex.width * scale
+                        draw_h = logo_tex.height * scale
+                        arcade.draw_texture_rect(
+                            logo_tex,
+                            arcade.LBWH(width / 2 - draw_w / 2, current_y - draw_h / 2, draw_w, draw_h),
+                        )
+                current_y -= LOGO_HEIGHT
                 continue
 
             if -80 <= current_y <= height + 80:

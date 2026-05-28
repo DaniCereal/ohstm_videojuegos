@@ -2,6 +2,7 @@ import arcade
 
 from data.settings import SETTINGS
 from pyglet.window import key as pyglet_key
+from constants import WINDOW_WIDTH, WINDOW_HEIGHT
 
 
 class SettingsView(arcade.View):
@@ -357,6 +358,9 @@ class SettingsView(arcade.View):
             self.previous_view.cleanup()
 
         self.window.set_fullscreen(SETTINGS.fullscreen)
+        if not SETTINGS.fullscreen:
+            self.window.set_size(WINDOW_WIDTH, WINDOW_HEIGHT)
+            self.window.center_window()
         self.window.dispatch_event(
             "on_resize",
             self.window.width,
