@@ -214,6 +214,7 @@ class GameView(arcade.View):
         # Load sounds
         self.collect_coin_sound = arcade.load_sound(":resources:sounds/coin1.wav")
         self.jump_sound = arcade.load_sound(":resources:sounds/jump1.wav")
+        self.gameover_voice = arcade.load_sound(ASSETS_ROOT / "VSX" / "Hermes" / "HermesDeath.wav")
         self.gameover_sound = arcade.load_sound(":resources:sounds/gameover1.wav")
         self.hit_sound = arcade.load_sound(":resources:sounds/hit5.wav")
 
@@ -1010,9 +1011,18 @@ class GameView(arcade.View):
 
     def lose_life(self):
         self.lives -= 1
-        self.play_sfx(self.gameover_sound)
+        if self.lives != 0:
+            arcade.play_sound(
+            self.gameover_sound, 
+            volume=SETTINGS.sfx_volume
+        )
 
-        if self.lives <= 0:
+
+        elif self.lives <= 0:
+            arcade.play_sound(
+                self.gameover_voice, 
+                volume=SETTINGS.voice_volume
+            )
             if self.music_player:
                 self.music_player.delete()
                 self.music_player = None
