@@ -79,7 +79,7 @@ SAFE_ROOM_ENTRANCES = {
     (2, 2): {"right"},
 }
 
-SIDE_EXIT_MARGIN = 10
+SIDE_EXIT_MARGIN = 1
 FALL_VOID_MARGIN = 20
 
 DAEDALUS_ROOM = (2, 1)
@@ -935,13 +935,13 @@ class GameView(arcade.View):
     def handle_room_exits(self):
         if (
             self.left_pressed
-            and self.player_sprite.center_x <= SIDE_EXIT_MARGIN
+            and self.player_sprite.left <= SIDE_EXIT_MARGIN
         ):
             return self.try_exit_room("left")
 
         if (
             self.right_pressed
-            and self.player_sprite.center_x >= self.map_width - SIDE_EXIT_MARGIN
+            and self.player_sprite.right >= self.map_width - SIDE_EXIT_MARGIN
         ):
             return self.try_exit_room("right")
 
