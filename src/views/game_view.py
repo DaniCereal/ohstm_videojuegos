@@ -584,8 +584,8 @@ class GameView(arcade.View):
             return
 
         self.daedalus_npc = arcade.Sprite(
-            ":resources:images/animated_characters/male_person/malePerson_idle.png",
-            scale=0.8,
+            str(ASSETS_ROOT / "Sprites" / "Dedalo" / "dedalo.png"),
+            scale= 0.15,
         )
         self.daedalus_npc.center_x = DAEDALUS_POSITION[0]
         self.daedalus_npc.center_y = DAEDALUS_POSITION[1]
