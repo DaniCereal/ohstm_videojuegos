@@ -152,7 +152,6 @@ class GameView(arcade.View):
         self.right_pressed = False
         self.up_pressed = False
         self.down_pressed = False
-        self.shoot_pressed = False
         self.jump_queued = False
         self.touching_left_wall = False
         self.touching_right_wall = False
@@ -174,7 +173,6 @@ class GameView(arcade.View):
         self.ladder_sprites = None
         self.enemy_sprites = None
         self.coin_sprites = None
-        self.bullet_sprites = None
         self.npc_sprites = None
         self.reset_sprites = None
         self.daedalus_npc = None
@@ -201,10 +199,6 @@ class GameView(arcade.View):
         # Should we reset the score?
         self.reset_score = False
 
-        # Shooting mechanics
-        self.can_shoot = False
-        self.shoot_timer = 0
-
         # Music (puede heredarse de la sala anterior si es el mismo track)
         self.music = inherited_music
         self.music_player = inherited_music_player
@@ -221,7 +215,6 @@ class GameView(arcade.View):
         self.collect_coin_sound = arcade.load_sound(":resources:sounds/coin1.wav")
         self.jump_sound = arcade.load_sound(":resources:sounds/jump1.wav")
         self.gameover_sound = arcade.load_sound(":resources:sounds/gameover1.wav")
-        self.shoot_sound = arcade.load_sound(":resources:sounds/hurt5.wav")
         self.hit_sound = arcade.load_sound(":resources:sounds/hit5.wav")
 
     @staticmethod
@@ -360,17 +353,10 @@ class GameView(arcade.View):
 
         self.gui_camera = arcade.camera.Camera2D()
 
-        # Shooting mechanics
-        self.can_shoot = False
-        self.shoot_timer = 0
-
         self.score_text = None
         self.lives_text = None
 
         self.background_color = arcade.csscolor.CORNFLOWER_BLUE
-
-        # Add an empty bullet SpriteList to our scene
-        self.bullet_sprites = self.ensure_sprite_list("Bullets")
 
         if self.tile_map.background_color:
             self.window.background_color = self.tile_map.background_color
@@ -1372,30 +1358,6 @@ class GameView(arcade.View):
         else:
             self.player_sprite.climbing = False
 
-        if self.can_shoot:
-            if self.shoot_pressed:
-                self.play_sfx(self.shoot_sound)
-                bullet = arcade.Sprite(
-                    ":resources:images/space_shooter/laserBlue01.png",
-                    scaling=0.8,
-                )
-                if self.player_sprite.facing_direction == RIGHT_FACING:
-                    bullet.change_x = 12
-                else:
-                    bullet.change_x = -12
-
-                bullet.center_x = self.player_sprite.center_x
-                bullet.center_y = self.player_sprite.center_y
-
-                self.scene.add_sprite("Bullets", bullet)
-                self.can_shoot = False
-        else:
-            self.shoot_timer += 1
-            if self.shoot_timer == 15:
-                self.can_shoot = True
-                self.shoot_timer = 0
-
-
         # Move the player using our physics engine
         self.physics_engine.update()
         self.cancel_wall_jump_on_collision()
@@ -1423,7 +1385,7 @@ class GameView(arcade.View):
             ]
         )
 
-        self.scene.update(delta_time, ["Enemies", "Bullets"])
+        self.scene.update(delta_time, ["Enemies"])
 
         # Keep enemies walking within their boundaries configured in Tiled
         for enemy in self.scene["Enemies"]:
@@ -1431,39 +1393,6 @@ class GameView(arcade.View):
                 enemy.change_x *= -1
             elif enemy.left < enemy.boundary_left and enemy.change_x < 0:
                 enemy.change_x *= -1
-
-        for bullet in self.scene["Bullets"]:
-            hit_list = arcade.check_for_collision_with_lists(
-                bullet,
-                [
-                    self.enemy_sprites,
-                    self.platform_sprites,
-                    self.moving_platform_sprites
-                ]
-            )
-
-            if hit_list:
-                bullet.remove_from_sprite_lists()
-
-                for collision in hit_list:
-                    if self.enemy_sprites in collision.sprite_lists:
-                        collision.health -= 25
-
-                        if collision.health <= 0:
-                            collision.remove_from_sprite_lists()
-                            self.score += 150
-
-                        arcade.play_sound(
-                            self.hit_sound,
-                            volume=SETTINGS.sfx_volume
-                        )
-
-                return
-
-            # Remove bullet if it leaves the map area.
-            # Bullets only travel horizontally, so we only need to check left and right.
-            if (bullet.right < 0) or (bullet.left > self.end_of_map):
-                bullet.remove_from_sprite_lists()
 
         # See if we hit any coins
         player_collision_list = arcade.check_for_collision_with_lists(
@@ -1706,9 +1635,6 @@ class GameView(arcade.View):
         elif key == SETTINGS.key_right:
             self.right_pressed = True
 
-        elif key == SETTINGS.key_shoot:
-            self.shoot_pressed = True
-
         # --- DASH ---
         if key == SETTINGS.key_dash:
 
@@ -1752,9 +1678,6 @@ class GameView(arcade.View):
 
         elif key == SETTINGS.key_down:
             self.down_pressed = False
-
-        if key == SETTINGS.key_shoot:
-            self.shoot_pressed = False
 
         self.process_keychange()
 

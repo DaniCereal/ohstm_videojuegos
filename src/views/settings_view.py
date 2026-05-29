@@ -32,7 +32,6 @@ class SettingsView(arcade.View):
             ("Izquierda", "key_left", "controls"),
             ("Derecha", "key_right", "controls"),
             ("Dash", "key_dash", "controls"),
-            ("Disparar", "key_shoot", "controls"),
             ("Pausa", "key_pause", "controls"),
             ("Reiniciar", "key_restart", "controls"),
             ("Volver", "back", "back"),
