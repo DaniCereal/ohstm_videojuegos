@@ -95,7 +95,7 @@ SIDE_EXIT_MARGIN = 1
 FALL_VOID_MARGIN = 20
 
 DAEDALUS_ROOM = (2, 1)
-DAEDALUS_POSITION = (310, 170)
+DAEDALUS_POSITION = (255, 170)
 DIALOGUE_INTERACT_DISTANCE = 96
 DIALOGUE_PATH = PROJECT_ROOT / "docs" / "Dialogues" / "DedaloFirstTimeMeet"
 DEDALO_VOICE_DIR = PROJECT_ROOT / "assets" / "VSX" / "Dedalo"
@@ -601,13 +601,13 @@ class GameView(arcade.View):
         if self.current_room != DAEDALUS_ROOM:
             return
 
-        self.daedalus_textures = arcade.load_spritesheet(
-            ASSETS_ROOT / "Sprites" / "Dedalo" / "dedalo_sprite_final.png",
-            32, 32, 3, 7,
+        sheet = arcade.load_spritesheet(
+            ASSETS_ROOT / "Sprites" / "Dedalo" / "dedalo_sprite_final.png"
         )
+        self.daedalus_textures = sheet.get_texture_grid((32, 32), columns=3, count=7)
         self.daedalus_anim_timer = 0
 
-        self.daedalus_npc = arcade.Sprite(scale=2)
+        self.daedalus_npc = arcade.Sprite(scale=2.1)
         self.daedalus_npc.texture = self.daedalus_textures[0]
         self.daedalus_npc.center_x = DAEDALUS_POSITION[0]
         self.daedalus_npc.center_y = 400
@@ -1043,7 +1043,7 @@ class GameView(arcade.View):
             if self.gameover_voice:
                 arcade.play_sound(
                     self.gameover_voice,
-                    volume=SETTINGS.voice_volume
+                    volume=SETTINGS.voice_volume * 0.5
                 )
             if self.music_player:
                 self.music_player.delete()
@@ -1953,7 +1953,7 @@ class GameOverView(arcade.View):
         self.window.ctx.viewport = (0, 0, self.window.width, self.window.height)
         if not self.stars:
             self._init_particles(self.window.width, self.window.height)
-        self.music_player = arcade.play_sound(self.music, volume=SETTINGS.music_volume * 0.45, loop=True)
+        self.music_player = arcade.play_sound(self.music, volume=SETTINGS.music_volume * 0.75, loop=True)
 
     def on_update(self, delta_time):
         self.time += delta_time
