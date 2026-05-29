@@ -24,11 +24,14 @@ from models.enemy import (
     ZombieEnemy
 )
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ASSETS_ROOT = PROJECT_ROOT / "assets"
+
 LEVEL_GRID = {
-    (1, 1): "../assets/Niveles/TierraArriba1-1.tmx",
-    (2, 0): "../assets/Niveles/TierraArriba2-0.tmx",
-    (2, 1): "../assets/Niveles/TierraArriba2-1.tmx",
-    (2, 2): "../assets/Niveles/TierraArriba2-2.tmx",
+    (1, 1): ASSETS_ROOT / "Niveles" / "1-1.tmx",
+    (2, 0): ASSETS_ROOT / "Niveles" / "2-0.tmx",
+    (2, 1): ASSETS_ROOT / "Niveles" / "2-1.tmx",
+    (2, 2): ASSETS_ROOT / "Niveles" / "2-2.tmx",
 }
 LEVEL_ORDER = (
     (1, 1),
@@ -39,10 +42,10 @@ LEVEL_ORDER = (
 LEVELS = [LEVEL_GRID[position] for position in LEVEL_ORDER]
 
 LEVEL_MUSIC = [
-    "../assets/Music/OST/Earth_1_clean.wav",
-    "../assets/Music/OST/Earth_1_clean.wav",
-    "../assets/Music/OST/Earth_1_clean.wav",
-    "../assets/Music/OST/Earth_1_clean.wav",
+    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
+    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
+    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
+    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
 ]
 
 OPPOSITE_SIDE = {
@@ -76,10 +79,9 @@ SAFE_ROOM_ENTRANCES = {
     (2, 2): {"right"},
 }
 
-SIDE_EXIT_MARGIN = 10
+SIDE_EXIT_MARGIN = 1
 FALL_VOID_MARGIN = 20
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DAEDALUS_ROOM = (2, 1)
 DAEDALUS_POSITION = (300, 170)
 DIALOGUE_INTERACT_DISTANCE = 96
@@ -112,6 +114,7 @@ class GameView(arcade.View):
         inherited_music_player=None,
         daedalus_dialogue_complete=False,
     ):
+        self.last_wall_touched = 0
 
         # Call the parent class and set up the window
         super().__init__()
@@ -149,8 +152,10 @@ class GameView(arcade.View):
         self.right_pressed = False
         self.up_pressed = False
         self.down_pressed = False
-        self.shoot_pressed = False
         self.jump_queued = False
+        self.touching_left_wall = False
+        self.touching_right_wall = False
+        self.wall_jump_wall_direction = 0
 
         # Variable to hold our texture for our player
         self.player_texture = None
@@ -168,7 +173,6 @@ class GameView(arcade.View):
         self.ladder_sprites = None
         self.enemy_sprites = None
         self.coin_sprites = None
-        self.bullet_sprites = None
         self.npc_sprites = None
         self.reset_sprites = None
         self.daedalus_npc = None
@@ -195,10 +199,6 @@ class GameView(arcade.View):
         # Should we reset the score?
         self.reset_score = False
 
-        # Shooting mechanics
-        self.can_shoot = False
-        self.shoot_timer = 0
-
         # Music (puede heredarse de la sala anterior si es el mismo track)
         self.music = inherited_music
         self.music_player = inherited_music_player
@@ -214,8 +214,8 @@ class GameView(arcade.View):
         # Load sounds
         self.collect_coin_sound = arcade.load_sound(":resources:sounds/coin1.wav")
         self.jump_sound = arcade.load_sound(":resources:sounds/jump1.wav")
+        self.gameover_voice = arcade.load_sound(ASSETS_ROOT / "VSX" / "Hermes" / "HermesDeath.wav")
         self.gameover_sound = arcade.load_sound(":resources:sounds/gameover1.wav")
-        self.shoot_sound = arcade.load_sound(":resources:sounds/hurt5.wav")
         self.hit_sound = arcade.load_sound(":resources:sounds/hit5.wav")
 
     @staticmethod
@@ -249,7 +249,7 @@ class GameView(arcade.View):
         self.map_path = Path(map_path)
 
         self.tile_map = arcade.load_tilemap(
-            map_path,
+            str(map_path),
             scaling=TILE_SCALING,
             layer_options=layer_options,
         )
@@ -354,17 +354,10 @@ class GameView(arcade.View):
 
         self.gui_camera = arcade.camera.Camera2D()
 
-        # Shooting mechanics
-        self.can_shoot = False
-        self.shoot_timer = 0
-
         self.score_text = None
         self.lives_text = None
 
         self.background_color = arcade.csscolor.CORNFLOWER_BLUE
-
-        # Add an empty bullet SpriteList to our scene
-        self.bullet_sprites = self.ensure_sprite_list("Bullets")
 
         if self.tile_map.background_color:
             self.window.background_color = self.tile_map.background_color
@@ -592,8 +585,8 @@ class GameView(arcade.View):
             return
 
         self.daedalus_npc = arcade.Sprite(
-            ":resources:images/animated_characters/male_person/malePerson_idle.png",
-            scale=0.8,
+            str(ASSETS_ROOT / "Sprites" / "Dedalo" / "dedalo.png"),
+            scale= 0.15,
         )
         self.daedalus_npc.center_x = DAEDALUS_POSITION[0]
         self.daedalus_npc.center_y = DAEDALUS_POSITION[1]
@@ -929,13 +922,13 @@ class GameView(arcade.View):
     def handle_room_exits(self):
         if (
             self.left_pressed
-            and self.player_sprite.center_x <= SIDE_EXIT_MARGIN
+            and self.player_sprite.left <= SIDE_EXIT_MARGIN
         ):
             return self.try_exit_room("left")
 
         if (
             self.right_pressed
-            and self.player_sprite.center_x >= self.map_width - SIDE_EXIT_MARGIN
+            and self.player_sprite.right >= self.map_width - SIDE_EXIT_MARGIN
         ):
             return self.try_exit_room("right")
 
@@ -1018,9 +1011,18 @@ class GameView(arcade.View):
 
     def lose_life(self):
         self.lives -= 1
-        self.play_sfx(self.gameover_sound)
+        if self.lives != 0:
+            arcade.play_sound(
+            self.gameover_sound, 
+            volume=SETTINGS.sfx_volume
+        )
 
-        if self.lives <= 0:
+
+        elif self.lives <= 0:
+            arcade.play_sound(
+                self.gameover_voice, 
+                volume=SETTINGS.voice_volume
+            )
             if self.music_player:
                 self.music_player.delete()
                 self.music_player = None
@@ -1046,7 +1048,7 @@ class GameView(arcade.View):
         if self.music_player:
             self.music_player.delete()
         music_path = LEVEL_MUSIC[self.level - 1]
-        self.music = arcade.load_sound(music_path, streaming=True)
+        self.music = arcade.load_sound(str(music_path), streaming=True)
         self.music_player = arcade.play_sound(
             self.music, volume=SETTINGS.music_volume, loop=True
         )
@@ -1191,6 +1193,9 @@ class GameView(arcade.View):
     def on_update(self, delta_time):
         """Movement and Game Logic"""
 
+        if not self.initialized or not self.player_sprite or not self.physics_engine:
+            return
+
         if self.dialogue_active:
             self.player_sprite.change_x = 0
             self.player_sprite.change_y = 0
@@ -1237,8 +1242,8 @@ class GameView(arcade.View):
 
         if self.player_sprite.has_wall_jump:
 
-            touching_left_wall = False
-            touching_right_wall = False
+            self.touching_left_wall = False
+            self.touching_right_wall = False
 
             # mover temporalmente para comprobar pared izquierda
             self.player_sprite.center_x -= 2
@@ -1246,7 +1251,7 @@ class GameView(arcade.View):
                 self.player_sprite,
                 self.platform_sprites
             ):
-                touching_left_wall = True
+                self.touching_left_wall = True
 
             # comprobar pared derecha
             self.player_sprite.center_x += 4
@@ -1254,21 +1259,27 @@ class GameView(arcade.View):
                 self.player_sprite,
                 self.platform_sprites
             ):
-                touching_right_wall = True
+                self.touching_right_wall = True
 
             # restaurar posición original
             self.player_sprite.center_x -= 2
 
-            touching_wall = touching_left_wall or touching_right_wall
+            touching_wall = self.touching_left_wall or self.touching_right_wall
+
+            # Guardar última pared tocada
+            if self.touching_left_wall:
+                self.last_wall_touched = -1
+            elif self.touching_right_wall:
+                self.last_wall_touched = 1
 
             on_ground = self.physics_engine.can_jump()
 
             moving_down = self.player_sprite.change_y <= 0
 
             pressing_wall = (
-                (self.left_pressed and self.player_sprite.facing_direction == LEFT_FACING)
+                (self.left_pressed and self.touching_left_wall)
                 or
-                (self.right_pressed and self.player_sprite.facing_direction == RIGHT_FACING)
+                (self.right_pressed and self.touching_right_wall)
             )
 
             if (
@@ -1280,6 +1291,7 @@ class GameView(arcade.View):
             ):
 
                 self.player_sprite.wall_sliding = True
+                self.wall_jump_wall_direction = self.current_wall_direction()
 
                 # Limitar velocidad de caída
                 if self.player_sprite.change_y < WALL_SLIDE_SPEED:
@@ -1319,11 +1331,13 @@ class GameView(arcade.View):
 
         if self.physics_engine.can_jump():
             self.player_sprite.coyote_timer = 0.12
-
             # Reset doble salto al tocar suelo
             self.player_sprite.double_jump_available = False
             self.player_sprite.double_jump_used = False
             self.player_sprite.dash_available = True
+            # Reiniciar última pared al tocar suelo
+            self.player_sprite.last_wall_jumped = 0
+
         else:
             self.player_sprite.coyote_timer = max(
                 0, self.player_sprite.coyote_timer - delta_time
@@ -1354,30 +1368,6 @@ class GameView(arcade.View):
         else:
             self.player_sprite.climbing = False
 
-        if self.can_shoot:
-            if self.shoot_pressed:
-                self.play_sfx(self.shoot_sound)
-                bullet = arcade.Sprite(
-                    ":resources:images/space_shooter/laserBlue01.png",
-                    scaling=0.8,
-                )
-                if self.player_sprite.facing_direction == RIGHT_FACING:
-                    bullet.change_x = 12
-                else:
-                    bullet.change_x = -12
-
-                bullet.center_x = self.player_sprite.center_x
-                bullet.center_y = self.player_sprite.center_y
-
-                self.scene.add_sprite("Bullets", bullet)
-                self.can_shoot = False
-        else:
-            self.shoot_timer += 1
-            if self.shoot_timer == 15:
-                self.can_shoot = True
-                self.shoot_timer = 0
-
-
         # Move the player using our physics engine
         self.physics_engine.update()
         self.cancel_wall_jump_on_collision()
@@ -1405,7 +1395,7 @@ class GameView(arcade.View):
             ]
         )
 
-        self.scene.update(delta_time, ["Enemies", "Bullets"])
+        self.scene.update(delta_time, ["Enemies"])
 
         # Keep enemies walking within their boundaries configured in Tiled
         for enemy in self.scene["Enemies"]:
@@ -1413,39 +1403,6 @@ class GameView(arcade.View):
                 enemy.change_x *= -1
             elif enemy.left < enemy.boundary_left and enemy.change_x < 0:
                 enemy.change_x *= -1
-
-        for bullet in self.scene["Bullets"]:
-            hit_list = arcade.check_for_collision_with_lists(
-                bullet,
-                [
-                    self.enemy_sprites,
-                    self.platform_sprites,
-                    self.moving_platform_sprites
-                ]
-            )
-
-            if hit_list:
-                bullet.remove_from_sprite_lists()
-
-                for collision in hit_list:
-                    if self.enemy_sprites in collision.sprite_lists:
-                        collision.health -= 25
-
-                        if collision.health <= 0:
-                            collision.remove_from_sprite_lists()
-                            self.score += 150
-
-                        arcade.play_sound(
-                            self.hit_sound,
-                            volume=SETTINGS.sfx_volume
-                        )
-
-                return
-
-            # Remove bullet if it leaves the map area.
-            # Bullets only travel horizontally, so we only need to check left and right.
-            if (bullet.right < 0) or (bullet.left > self.end_of_map):
-                bullet.remove_from_sprite_lists()
 
         # See if we hit any coins
         player_collision_list = arcade.check_for_collision_with_lists(
@@ -1468,6 +1425,58 @@ class GameView(arcade.View):
                 self.update_hud()
 
         self.update_camera()
+
+    def perform_wall_jump(self):
+        wall_direction = (
+            self.wall_jump_wall_direction
+            or self.current_wall_direction()
+        )
+
+        if wall_direction == 0:
+            self.jump_queued = False
+            return
+        # Salto flojo (misma pared)
+        if self.player_sprite.last_wall_jumped == wall_direction:
+            jump_force_y = WALL_JUMP_REPEAT_FORCE_Y
+            jump_force_x = WALL_JUMP_REPEAT_FORCE_X
+
+        #Salto fuerte
+        else:
+            jump_force_y = WALL_JUMP_FORCE_Y
+            jump_force_x = WALL_JUMP_FORCE_X
+
+        # Aplicar fuerzas
+        self.player_sprite.change_y = jump_force_y
+        self.player_sprite.change_x = -wall_direction * jump_force_x
+
+        # Guardar última pared usada
+        self.player_sprite.last_wall_jumped = wall_direction
+
+        self.player_sprite.wall_sliding = False
+        self.player_sprite.wall_jump_lock_timer = WALL_JUMP_LOCK_TIME
+        self.player_sprite.wall_jump_active = True
+        self.player_sprite.jump_lock_timer = DOUBLE_JUMP_LOCK_TIME
+        self.player_sprite.double_jump_available = False
+        self.jump_queued = False
+
+        arcade.play_sound(
+            self.jump_sound,
+            volume=SETTINGS.sfx_volume
+        )
+
+        self.maybe_play_movement_voice()
+
+    def current_wall_direction(self):
+        if self.touching_left_wall and not self.touching_right_wall:
+            return -1
+        if self.touching_right_wall and not self.touching_left_wall:
+            return 1
+        if self.left_pressed and self.touching_left_wall:
+            return -1
+        if self.right_pressed and self.touching_right_wall:
+            return 1
+
+        return 0
 
     def process_keychange(self):
         # First handle the case where we have moved up. This needs to be handled
@@ -1508,6 +1517,9 @@ class GameView(arcade.View):
                     volume=SETTINGS.sfx_volume
                 )
                 self.maybe_play_movement_voice()
+
+            elif self.jump_queued and self.player_sprite.wall_sliding:
+                self.perform_wall_jump()
 
             elif self.jump_queued and self.player_sprite.has_double_jump:
                 if (
@@ -1633,9 +1645,6 @@ class GameView(arcade.View):
         elif key == SETTINGS.key_right:
             self.right_pressed = True
 
-        elif key == SETTINGS.key_shoot:
-            self.shoot_pressed = True
-
         # --- DASH ---
         if key == SETTINGS.key_dash:
 
@@ -1679,9 +1688,6 @@ class GameView(arcade.View):
 
         elif key == SETTINGS.key_down:
             self.down_pressed = False
-
-        if key == SETTINGS.key_shoot:
-            self.shoot_pressed = False
 
         self.process_keychange()
 
@@ -1728,7 +1734,7 @@ class GameView(arcade.View):
         if not self.player_sprite.wall_jump_active:
             return
 
-        if self.physics_engine.can_jump() or self.is_touching_wall():
+        if self.physics_engine.can_jump():
             self.player_sprite.wall_jump_active = False
             self.player_sprite.wall_jump_lock_timer = 0
             self.process_keychange()
