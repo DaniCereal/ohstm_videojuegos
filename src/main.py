@@ -1,5 +1,5 @@
 """
-Platformer Game. 
+Platformer Game.
 
 Basado en el tutorial de arcade: https://arcade.academy/examples/platform_tutorial.html#platform-tutorial
 """
@@ -36,17 +36,9 @@ def main():
 
 if __name__ == "__main__":
 
-    # Obtenemos la ruta del proyecto utilizando PathLib,
-    # necesitamos esta ruta para poder acceder a los archivos con recursos
-    # de forma independiente desde donde se ejecute el script.
     PROJECT_ROOT = Path(__file__).parent.parent
-
     print(f"Project root is: {PROJECT_ROOT}")
 
-    # Ejemplo de acceso a un archivo dentro de recursos
-    #filetest = PROJECT_ROOT / "assets" / "dialogs.txt"
-    #print(f"Test file size: {filetest.stat().st_size} bytes")
-    
     SETTINGS.load()
 
     main()

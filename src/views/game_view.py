@@ -32,12 +32,16 @@ LEVEL_GRID = {
     (2, 0): ASSETS_ROOT / "Niveles" / "2-0.tmx",
     (2, 1): ASSETS_ROOT / "Niveles" / "2-1.tmx",
     (2, 2): ASSETS_ROOT / "Niveles" / "2-2.tmx",
+    (0, 2): ASSETS_ROOT / "Niveles" / "0_2.tmx",
+    (0, 3): ASSETS_ROOT / "Niveles" / "0_3.tmx",
 }
 LEVEL_ORDER = (
     (1, 1),
     (2, 0),
     (2, 1),
     (2, 2),
+    (0, 2),
+    (0, 3),
 )
 LEVELS = [LEVEL_GRID[position] for position in LEVEL_ORDER]
 
@@ -46,6 +50,14 @@ LEVEL_MUSIC = [
     ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
     ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
     ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
+    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
+    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
+]
+
+OVERWORLD_ROOMS = frozenset({(0, 2), (0, 3)})
+OVERWORLD_MUSIC = [
+    ASSETS_ROOT / "Music" / "OST" / "Olympus_1_clean.wav",
+    ASSETS_ROOT / "Music" / "OST" / "Olympus_2_clean.wav",
 ]
 
 OPPOSITE_SIDE = {
@@ -83,7 +95,7 @@ SIDE_EXIT_MARGIN = 1
 FALL_VOID_MARGIN = 20
 
 DAEDALUS_ROOM = (2, 1)
-DAEDALUS_POSITION = (300, 170)
+DAEDALUS_POSITION = (310, 170)
 DIALOGUE_INTERACT_DISTANCE = 96
 DIALOGUE_PATH = PROJECT_ROOT / "docs" / "Dialogues" / "DedaloFirstTimeMeet"
 DEDALO_VOICE_DIR = PROJECT_ROOT / "assets" / "VSX" / "Dedalo"
@@ -113,6 +125,7 @@ class GameView(arcade.View):
         inherited_music=None,
         inherited_music_player=None,
         daedalus_dialogue_complete=False,
+        inherited_overworld_track_index=0,
     ):
         self.last_wall_touched = 0
 
@@ -176,6 +189,9 @@ class GameView(arcade.View):
         self.npc_sprites = None
         self.reset_sprites = None
         self.daedalus_npc = None
+        self.daedalus_textures = []
+        self.daedalus_anim_timer = 0
+        self.overworld_track_index = inherited_overworld_track_index
 
         # A variable to store our camera object
         self.camera = None
@@ -214,7 +230,8 @@ class GameView(arcade.View):
         # Load sounds
         self.collect_coin_sound = arcade.load_sound(":resources:sounds/coin1.wav")
         self.jump_sound = arcade.load_sound(":resources:sounds/jump1.wav")
-        self.gameover_voice = arcade.load_sound(ASSETS_ROOT / "VSX" / "Hermes" / "HermesDeath.wav")
+        _death_wav = ASSETS_ROOT / "VSX" / "Hermes" / "HermesDeath.wav"
+        self.gameover_voice = arcade.load_sound(_death_wav) if _death_wav.exists() else None
         self.gameover_sound = arcade.load_sound(":resources:sounds/gameover1.wav")
         self.hit_sound = arcade.load_sound(":resources:sounds/hit5.wav")
 
@@ -584,19 +601,21 @@ class GameView(arcade.View):
         if self.current_room != DAEDALUS_ROOM:
             return
 
-        self.daedalus_npc = arcade.Sprite(
-            str(ASSETS_ROOT / "Sprites" / "Dedalo" / "dedalo.png"),
-            scale= 0.15,
+        self.daedalus_textures = arcade.load_spritesheet(
+            ASSETS_ROOT / "Sprites" / "Dedalo" / "dedalo_sprite_final.png",
+            32, 32, 3, 7,
         )
+        self.daedalus_anim_timer = 0
+
+        self.daedalus_npc = arcade.Sprite(scale=2)
+        self.daedalus_npc.texture = self.daedalus_textures[0]
         self.daedalus_npc.center_x = DAEDALUS_POSITION[0]
-        self.daedalus_npc.center_y = DAEDALUS_POSITION[1]
-        self.resolve_sprite_position(
-            self.daedalus_npc,
-            DAEDALUS_POSITION[0],
-            DAEDALUS_POSITION[1],
-            prefer_floor=True,
-            search_margin=48,
-        )
+        self.daedalus_npc.center_y = 400
+        for _ in range(400):
+            self.daedalus_npc.center_y -= 1
+            if arcade.check_for_collision_with_list(self.daedalus_npc, self.platform_sprites):
+                self.daedalus_npc.center_y += 1
+                break
         self.scene.add_sprite("NPCs", self.daedalus_npc)
 
     def can_talk_to_daedalus(self):
@@ -964,7 +983,8 @@ class GameView(arcade.View):
 
     def change_room(self, target_room, entry_side):
         next_level = self.level_from_room(target_room)
-        same_track = (
+        both_overworld = self.current_room in OVERWORLD_ROOMS and target_room in OVERWORLD_ROOMS
+        same_track = both_overworld or (
             0 < next_level <= len(LEVEL_MUSIC)
             and 0 < self.level <= len(LEVEL_MUSIC)
             and LEVEL_MUSIC[next_level - 1] == LEVEL_MUSIC[self.level - 1]
@@ -991,6 +1011,7 @@ class GameView(arcade.View):
             inherited_music=inherited_music,
             inherited_music_player=inherited_player,
             daedalus_dialogue_complete=self.daedalus_dialogue_complete,
+            inherited_overworld_track_index=self.overworld_track_index,
         )
         self.window.show_view(new_game)
 
@@ -1019,10 +1040,11 @@ class GameView(arcade.View):
 
 
         elif self.lives <= 0:
-            arcade.play_sound(
-                self.gameover_voice, 
-                volume=SETTINGS.voice_volume
-            )
+            if self.gameover_voice:
+                arcade.play_sound(
+                    self.gameover_voice,
+                    volume=SETTINGS.voice_volume
+                )
             if self.music_player:
                 self.music_player.delete()
                 self.music_player = None
@@ -1047,10 +1069,21 @@ class GameView(arcade.View):
     def start_music(self):
         if self.music_player:
             self.music_player.delete()
-        music_path = LEVEL_MUSIC[self.level - 1]
-        self.music = arcade.load_sound(str(music_path), streaming=True)
+        if self.current_room in OVERWORLD_ROOMS:
+            self.overworld_track_index = 0
+            self._play_overworld_track()
+        else:
+            music_path = LEVEL_MUSIC[self.level - 1]
+            self.music = arcade.load_sound(str(music_path), streaming=True)
+            self.music_player = arcade.play_sound(
+                self.music, volume=SETTINGS.music_volume, loop=True
+            )
+
+    def _play_overworld_track(self):
+        path = OVERWORLD_MUSIC[self.overworld_track_index % len(OVERWORLD_MUSIC)]
+        self.music = arcade.load_sound(str(path), streaming=True)
         self.music_player = arcade.play_sound(
-            self.music, volume=SETTINGS.music_volume, loop=True
+            self.music, volume=SETTINGS.music_volume, loop=False
         )
 
     def on_show_view(self):
@@ -1200,6 +1233,10 @@ class GameView(arcade.View):
             self.player_sprite.change_x = 0
             self.player_sprite.change_y = 0
             self.scene.update_animation(delta_time, ["Player", "NPCs"])
+            if self.daedalus_npc and self.daedalus_textures:
+                self.daedalus_anim_timer += delta_time
+                n = len(self.daedalus_textures)
+                self.daedalus_npc.texture = self.daedalus_textures[int(self.daedalus_anim_timer * 12.5) % n]
             return
 
         # --- WALL JUMP LOCK TIMER ---
@@ -1394,6 +1431,19 @@ class GameView(arcade.View):
                 "Enemies"
             ]
         )
+
+        if self.daedalus_npc and self.daedalus_textures:
+            self.daedalus_anim_timer += delta_time
+            n = len(self.daedalus_textures)
+            self.daedalus_npc.texture = self.daedalus_textures[int(self.daedalus_anim_timer * 12.5) % n]
+
+        if (
+            self.current_room in OVERWORLD_ROOMS
+            and self.music_player is not None
+            and not self.music_player.playing
+        ):
+            self.overworld_track_index += 1
+            self._play_overworld_track()
 
         self.scene.update(delta_time, ["Enemies"])
 

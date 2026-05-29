@@ -260,3 +260,6 @@ release/
 venv/
 __pycache__/
 *.pyc
+
+# Claude Code memory (assistant only, not for git)
+.claude/
