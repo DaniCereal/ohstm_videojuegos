@@ -365,4 +365,9 @@
    <object id="1" type="Platform" x="0" y="0" width="32" height="32"/>
   </objectgroup>
  </tile>
+ <tile id="89" type="Reset">
+  <objectgroup draworder="index" id="2">
+   <object id="1" x="0.0851353" y="31.9546" width="32.0908" height="0.0454856"/>
+  </objectgroup>
+ </tile>
 </tileset>

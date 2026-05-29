@@ -3,6 +3,7 @@ import math
 import random
 import textwrap
 import unicodedata
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from data.savegame import (
@@ -169,6 +170,7 @@ class GameView(arcade.View):
         self.coin_sprites = None
         self.bullet_sprites = None
         self.npc_sprites = None
+        self.reset_sprites = None
         self.daedalus_npc = None
 
         # A variable to store our camera object
@@ -244,6 +246,7 @@ class GameView(arcade.View):
             layer_options[layer_name] = {"use_spatial_hash": True}
 
         map_path = LEVEL_GRID[self.current_room]
+        self.map_path = Path(map_path)
 
         self.tile_map = arcade.load_tilemap(
             map_path,
@@ -260,6 +263,7 @@ class GameView(arcade.View):
         self.moving_platform_sprites = self.ensure_sprite_list("Moving Platforms")
         self.ladder_sprites = self.ensure_sprite_list("Ladders")
         self.npc_sprites = self.ensure_sprite_list("NPCs")
+        self.reset_sprites = self.build_reset_sprites()
         self.calculate_map_bounds()
         self.load_voice_assets()
 
@@ -384,6 +388,134 @@ class GameView(arcade.View):
 
         self.scene.add_sprite_list("Platforms")
         return self.scene["Platforms"]
+
+    def build_reset_sprites(self):
+        reset_sprites = arcade.SpriteList(use_spatial_hash=True)
+        reset_hitboxes = self.reset_tile_hitboxes()
+        if not reset_hitboxes:
+            return reset_sprites
+
+        try:
+            root = ET.parse(self.map_path).getroot()
+        except (ET.ParseError, OSError):
+            return reset_sprites
+
+        tile_width = int(root.attrib["tilewidth"])
+        tile_height = int(root.attrib["tileheight"])
+        map_height = int(root.attrib["height"])
+
+        for layer in root.findall("layer"):
+            if layer.attrib.get("name") not in PLATFORM_LAYER_CANDIDATES:
+                continue
+
+            data = layer.find("data")
+            if data is None or data.attrib.get("encoding") != "csv":
+                continue
+
+            gids = [
+                int(value.strip()) & 0x1FFFFFFF
+                for value in data.text.split(",")
+                if value.strip()
+            ]
+
+            for index, gid in enumerate(gids):
+                if gid not in reset_hitboxes:
+                    continue
+
+                column = index % int(layer.attrib["width"])
+                row = index // int(layer.attrib["width"])
+                self.remove_platform_sprite_at_tile(
+                    column,
+                    row,
+                    tile_width,
+                    tile_height,
+                    map_height
+                )
+
+                for hitbox in reset_hitboxes[gid]:
+                    object_x, object_y, object_width, object_height = hitbox
+                    sprite = arcade.SpriteSolidColor(
+                        max(1, int(object_width * TILE_SCALING)),
+                        max(1, int(object_height * TILE_SCALING)),
+                        center_x=(
+                            column * tile_width
+                            + object_x
+                            + object_width / 2
+                        ) * TILE_SCALING,
+                        center_y=(
+                            map_height * tile_height
+                            - (
+                                row * tile_height
+                                + object_y
+                                + object_height / 2
+                            )
+                        ) * TILE_SCALING,
+                        color=(255, 0, 0, 0),
+                    )
+                    reset_sprites.append(sprite)
+
+        return reset_sprites
+
+    def remove_platform_sprite_at_tile(
+        self,
+        column,
+        row,
+        tile_width,
+        tile_height,
+        map_height,
+    ):
+        center_x = (column + 0.5) * tile_width * TILE_SCALING
+        center_y = (map_height - row - 0.5) * tile_height * TILE_SCALING
+
+        for sprite in list(self.platform_sprites):
+            if (
+                abs(sprite.center_x - center_x) <= 1
+                and abs(sprite.center_y - center_y) <= 1
+            ):
+                sprite.remove_from_sprite_lists()
+                return
+
+    def reset_tile_hitboxes(self):
+        try:
+            root = ET.parse(self.map_path).getroot()
+        except (ET.ParseError, OSError):
+            return {}
+
+        reset_hitboxes = {}
+        for tileset in root.findall("tileset"):
+            first_gid = int(tileset.attrib["firstgid"])
+            source = tileset.attrib.get("source")
+            tileset_root = tileset
+
+            if source:
+                tileset_path = self.map_path.parent / source
+                try:
+                    tileset_root = ET.parse(tileset_path).getroot()
+                except (ET.ParseError, OSError):
+                    continue
+
+            for tile in tileset_root.findall("tile"):
+                tile_type = tile.attrib.get("type", "")
+                if tile_type.lower() == "reset":
+                    gid = first_gid + int(tile.attrib["id"])
+                    hitboxes = []
+                    object_group = tile.find("objectgroup")
+
+                    if object_group is not None:
+                        for hitbox_object in object_group.findall("object"):
+                            hitboxes.append(
+                                (
+                                    float(hitbox_object.attrib.get("x", 0)),
+                                    float(hitbox_object.attrib.get("y", 0)),
+                                    float(hitbox_object.attrib.get("width", 0)),
+                                    float(hitbox_object.attrib.get("height", 0)),
+                                )
+                            )
+
+                    if hitboxes:
+                        reset_hitboxes[gid] = hitboxes
+
+        return reset_hitboxes
 
     def load_voice_assets(self):
         self.dialogue_lines = self.load_dialogue(DIALOGUE_PATH)
@@ -1253,6 +1385,13 @@ class GameView(arcade.View):
             return
 
         self.keep_player_inside_map()
+
+        if arcade.check_for_collision_with_list(
+            self.player_sprite,
+            self.reset_sprites
+        ):
+            self.lose_life()
+            return
         
         # Actually trigger animation updates. We've added the Background and Coins layer
         # here as well. Our Tiled map has some animated tiles built-in, check out the flags
