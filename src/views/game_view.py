@@ -96,6 +96,8 @@ FALL_VOID_MARGIN = 20
 
 DAEDALUS_ROOM = (2, 1)
 DAEDALUS_POSITION = (255, 170)
+ZEUS_ROOM = (0, 2)
+ZEUS_POSITION = (330, 900)
 DIALOGUE_INTERACT_DISTANCE = 96
 DIALOGUE_PATH = PROJECT_ROOT / "docs" / "Dialogues" / "DedaloFirstTimeMeet"
 DEDALO_VOICE_DIR = PROJECT_ROOT / "assets" / "VSX" / "Dedalo"
@@ -191,6 +193,9 @@ class GameView(arcade.View):
         self.daedalus_npc = None
         self.daedalus_textures = []
         self.daedalus_anim_timer = 0
+        self.zeus_npc = None
+        self.zeus_textures = []
+        self.zeus_anim_timer = 0
         self.overworld_track_index = inherited_overworld_track_index
 
         # A variable to store our camera object
@@ -598,25 +603,41 @@ class GameView(arcade.View):
         return lines
 
     def add_room_npcs(self):
-        if self.current_room != DAEDALUS_ROOM:
-            return
+        if self.current_room == DAEDALUS_ROOM:
+            sheet = arcade.load_spritesheet(
+                ASSETS_ROOT / "Sprites" / "Dedalo" / "dedalo_sprite_final.png"
+            )
+            self.daedalus_textures = sheet.get_texture_grid((32, 32), columns=3, count=7)
+            self.daedalus_anim_timer = 0
 
-        sheet = arcade.load_spritesheet(
-            ASSETS_ROOT / "Sprites" / "Dedalo" / "dedalo_sprite_final.png"
-        )
-        self.daedalus_textures = sheet.get_texture_grid((32, 32), columns=3, count=7)
-        self.daedalus_anim_timer = 0
+            self.daedalus_npc = arcade.Sprite(scale=2.1)
+            self.daedalus_npc.texture = self.daedalus_textures[0]
+            self.daedalus_npc.center_x = DAEDALUS_POSITION[0]
+            self.daedalus_npc.center_y = 400
+            for _ in range(400):
+                self.daedalus_npc.center_y -= 1
+                if arcade.check_for_collision_with_list(self.daedalus_npc, self.platform_sprites):
+                    self.daedalus_npc.center_y += 1
+                    break
+            self.scene.add_sprite("NPCs", self.daedalus_npc)
 
-        self.daedalus_npc = arcade.Sprite(scale=2.1)
-        self.daedalus_npc.texture = self.daedalus_textures[0]
-        self.daedalus_npc.center_x = DAEDALUS_POSITION[0]
-        self.daedalus_npc.center_y = 400
-        for _ in range(400):
-            self.daedalus_npc.center_y -= 1
-            if arcade.check_for_collision_with_list(self.daedalus_npc, self.platform_sprites):
-                self.daedalus_npc.center_y += 1
-                break
-        self.scene.add_sprite("NPCs", self.daedalus_npc)
+        elif self.current_room == ZEUS_ROOM:
+            sheet = arcade.load_spritesheet(
+                ASSETS_ROOT / "Sprites" / "Zeus" / "zeus_final_final.png"
+            )
+            self.zeus_textures = sheet.get_texture_grid((32, 32), columns=3, count=12)
+            self.zeus_anim_timer = 0
+
+            self.zeus_npc = arcade.Sprite(scale=2.4)
+            self.zeus_npc.texture = self.zeus_textures[0]
+            self.zeus_npc.center_x = ZEUS_POSITION[0]
+            self.zeus_npc.center_y = ZEUS_POSITION[1]
+            for _ in range(ZEUS_POSITION[1]):
+                self.zeus_npc.center_y -= 1
+                if arcade.check_for_collision_with_list(self.zeus_npc, self.platform_sprites):
+                    self.zeus_npc.center_y += 1
+                    break
+            self.scene.add_sprite("NPCs", self.zeus_npc)
 
     def can_talk_to_daedalus(self):
         if not self.daedalus_npc:
@@ -984,8 +1005,10 @@ class GameView(arcade.View):
     def change_room(self, target_room, entry_side):
         next_level = self.level_from_room(target_room)
         both_overworld = self.current_room in OVERWORLD_ROOMS and target_room in OVERWORLD_ROOMS
+        either_overworld = self.current_room in OVERWORLD_ROOMS or target_room in OVERWORLD_ROOMS
         same_track = both_overworld or (
-            0 < next_level <= len(LEVEL_MUSIC)
+            not either_overworld
+            and 0 < next_level <= len(LEVEL_MUSIC)
             and 0 < self.level <= len(LEVEL_MUSIC)
             and LEVEL_MUSIC[next_level - 1] == LEVEL_MUSIC[self.level - 1]
         )
@@ -1237,6 +1260,10 @@ class GameView(arcade.View):
                 self.daedalus_anim_timer += delta_time
                 n = len(self.daedalus_textures)
                 self.daedalus_npc.texture = self.daedalus_textures[int(self.daedalus_anim_timer * 12.5) % n]
+            if self.zeus_npc and self.zeus_textures:
+                self.zeus_anim_timer += delta_time
+                n = len(self.zeus_textures)
+                self.zeus_npc.texture = self.zeus_textures[int(self.zeus_anim_timer * 12.5) % n]
             return
 
         # --- WALL JUMP LOCK TIMER ---
@@ -1436,6 +1463,11 @@ class GameView(arcade.View):
             self.daedalus_anim_timer += delta_time
             n = len(self.daedalus_textures)
             self.daedalus_npc.texture = self.daedalus_textures[int(self.daedalus_anim_timer * 12.5) % n]
+
+        if self.zeus_npc and self.zeus_textures:
+            self.zeus_anim_timer += delta_time
+            n = len(self.zeus_textures)
+            self.zeus_npc.texture = self.zeus_textures[int(self.zeus_anim_timer * 12.5) % n]
 
         if (
             self.current_room in OVERWORLD_ROOMS
