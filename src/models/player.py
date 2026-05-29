@@ -27,6 +27,8 @@ class PlayerCharacter(Character):
         super().__init__(
         )
 
+        self.last_wall_jumped = 0
+
         self.animations = {
             "idle": self.load_animation("Estatico", "Estatico"),
             "walk": self.load_animation("Movimiento", "Movimiento"),
@@ -61,6 +63,7 @@ class PlayerCharacter(Character):
         self.wall_sliding = False
         self.wall_jump_lock_timer = 0
         self.wall_jump_active = False
+        self.last_wall_jumped = 0
 
     def load_animation(self, folder, file_prefix):
         frames_path = SPRITE_ROOT / folder
