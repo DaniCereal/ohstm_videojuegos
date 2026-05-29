@@ -27,6 +27,62 @@
             "width": 1280,
             "x": 512,
             "y": 864
+        },
+        {
+            "fileName": "2-2.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 1792,
+            "y": 864
+        },
+        {
+            "fileName": "2-3.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 3072,
+            "y": 864
+        },
+        {
+            "fileName": "2-4.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 4352,
+            "y": 864
+        },
+        {
+            "fileName": "3-3.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 3072,
+            "y": 1600
+        },
+        {
+            "fileName": "3-2.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 1792,
+            "y": 1600
+        },
+        {
+            "fileName": "3-4.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 4352,
+            "y": 1600
+        },
+        {
+            "fileName": "4-4.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 4352,
+            "y": 2336
+        },
+        {
+            "fileName": "2-5.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 5632,
+            "y": 864
         }
     ],
     "onlyShowAdjacentMaps": false,
