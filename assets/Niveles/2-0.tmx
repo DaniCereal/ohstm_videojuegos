@@ -5,6 +5,7 @@
  </tileset>
  <tileset firstgid="921" source="Tileset_Tierra_.tsx"/>
  <tileset firstgid="1017" source="Tileset_Tierra_girado.tsx"/>
+ <tileset firstgid="1113" source="CartelDerecha.tsx"/>
  <imagelayer id="3" name="FondoTierraArriba">
   <image source="../Mapas/Tierra arriba.png" width="1280" height="736"/>
  </imagelayer>
