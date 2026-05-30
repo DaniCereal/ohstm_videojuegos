@@ -10,6 +10,7 @@ Para ejecutar este videojuego se necesitara la instalacion de lo dicho con anter
 
 
 La organizacion de este trabajo se divide en tres carpetas:
+
     assets: Contiene los recursos multimedia y visuales.
 
         Images: Imágenes con el logo del juego y de la Universidad de Alcalá.
@@ -32,7 +33,7 @@ La organizacion de este trabajo se divide en tres carpetas:
         Generación: El código encargado de generar los personajes con sus respectivos sprites y datos acerca de su movimiento.
 
         Pantallas: La creación de las diferentes pantallas que puede haber en el videojuego, como el menú, los ajustes e incluso las pantallas donde se va a desarrollar el juego.
-        
+
 
 
 
