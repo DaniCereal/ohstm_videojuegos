@@ -27,32 +27,52 @@ from models.enemy import (
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ASSETS_ROOT = PROJECT_ROOT / "assets"
 
-LEVEL_GRID = {
-    (1, 1): ASSETS_ROOT / "Niveles" / "1-1.tmx",
-    (2, 0): ASSETS_ROOT / "Niveles" / "2-0.tmx",
-    (2, 1): ASSETS_ROOT / "Niveles" / "2-1.tmx",
-    (2, 2): ASSETS_ROOT / "Niveles" / "2-2.tmx",
-    (0, 2): ASSETS_ROOT / "Niveles" / "0_2.tmx",
-    (0, 3): ASSETS_ROOT / "Niveles" / "0_3.tmx",
+LEVEL_FILES = {
+    (2, 0): "2-0.tmx",
+    (2, 1): "2-1.tmx",
+    (2, 2): "2-2.tmx",
+    (2, 3): "2-3.tmx",
+    (2, 4): "2-4.tmx",
+    (2, 5): "2-5.tmx",
+    (2, 6): "2-6.tmx",
+    (2, 7): "2-7.tmx",
+    (1, 1): "1-1.tmx",
+    (1, 2): "1-2.tmx",
+    (1, 3): "1-3.tmx",
+    (0, 3): "0_3.tmx",
+    (0, 2): "0_2.tmx",
+    (0, 1): "0-1.tmx",
+    (1, 4): "1-4.tmx",
+    (1, 5): "1-5.tmx",
+    (0, 4): "0-4.tmx",
+    (0, 5): "0-5.tmx",
+    (0, 6): "0-6.tmx",
+    (0, 7): "0-7.tmx",
+    (3, 2): "3-2.tmx",
+    (3, 3): "3-3.tmx",
+    (3, 4): "3-4.tmx",
+    (4, 4): "4-4.tmx",
+    (3, 5): "3-5.tmx",
+    (3, 6): "3-6.tmx",
+    (4, 5): "4-5.tmx",
+    (5, 5): "5-5.tmx",
+    (5, 6): "5-6.tmx",
+    (5, 7): "5-7.tmx",
+    (4, 7): "4-7.tmx",
+    (5, 4): "5-4.tmx",
+    (5, 3): "5-3.tmx",
+    (4, 3): "4-3.tmx",
+    (4, 2): "4-2.tmx",
 }
-LEVEL_ORDER = (
-    (1, 1),
-    (2, 0),
-    (2, 1),
-    (2, 2),
-    (0, 2),
-    (0, 3),
-)
+LEVEL_GRID = {
+    room: ASSETS_ROOT / "Niveles" / filename
+    for room, filename in LEVEL_FILES.items()
+    if (ASSETS_ROOT / "Niveles" / filename).exists()
+}
+LEVEL_ORDER = tuple(room for room in LEVEL_FILES if room in LEVEL_GRID)
 LEVELS = [LEVEL_GRID[position] for position in LEVEL_ORDER]
 
-LEVEL_MUSIC = [
-    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
-    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
-    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
-    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
-    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
-    ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav",
-]
+LEVEL_MUSIC = [ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav"] * len(LEVEL_ORDER)
 
 OVERWORLD_ROOMS = frozenset({(0, 2), (0, 3)})
 OVERWORLD_MUSIC = [
@@ -68,28 +88,147 @@ OPPOSITE_SIDE = {
 }
 
 ROOM_CONNECTIONS = {
-    (1, 1): {
-        "bottom": (2, 1),
-        "right": (2, 0),
-    },
     (2, 0): {
-        "left": (1, 1),
         "right": (2, 1),
     },
     (2, 1): {
-        "top": (1, 1),
-        "left": (2, 0),
         "right": (2, 2),
+        "left": (2, 0),
+        "top": (1, 1),
     },
     (2, 2): {
         "left": (2, 1),
+        "right": (2, 3),
+        "top": (1, 2),
+        "bottom": (3, 2),
+    },
+    (2, 3): {
+        "left": (2, 2),
+        "right": (2, 4),
+    },
+    (2, 4): {
+        "left": (2, 3),
+        "right": (2, 5),
+        "top": (1, 4),
+    },
+    (2, 5): {
+        "left": (2, 4),
+        "right": (2, 6),
+    },
+    (2, 6): {
+        "left": (2, 5),
+        "right": (2, 7),
+    },
+    (2, 7): {
+        "left": (2, 6),
+    },
+    (1, 1): {
+        "bottom": (2, 1),
+    },
+    (1, 2): {
+        "bottom": (2, 2),
+        "right": (1, 3),
+    },
+    (1, 3): {
+        "left": (1, 2),
+        "top": (0, 3),
+    },
+    (0, 3): {
+        "bottom": (1, 3),
+        "left": (0, 2),
+    },
+    (0, 2): {
+        "right": (0, 3),
+        "left": (0, 1),
+    },
+    (0, 1): {
+        "right": (0, 2),
+    },
+    (1, 4): {
+        "bottom": (2, 4),
+        "right": (1, 5),
+        "top": (0, 4),
+    },
+    (1, 5): {
+        "left": (1, 4),
+    },
+    (0, 4): {
+        "bottom": (1, 4),
+        "right": (0, 5),
+    },
+    (0, 5): {
+        "left": (0, 4),
+        "right": (0, 6),
+    },
+    (0, 6): {
+        "left": (0, 5),
+        "right": (0, 7),
+    },
+    (0, 7): {
+        "left": (0, 6),
+    },
+    (3, 2): {
+        "top": (2, 2),
+        "right": (3, 3),
+    },
+    (3, 3): {
+        "left": (3, 2),
+        "right": (3, 4),
+    },
+    (3, 4): {
+        "left": (3, 3),
+        "right": (3, 5),
+        "bottom": (4, 4),
+    },
+    (4, 4): {
+        "top": (3, 4),
+    },
+    (3, 5): {
+        "left": (3, 4),
+        "right": (3, 6),
+        "bottom": (4, 5),
+    },
+    (3, 6): {
+        "left": (3, 5),
+    },
+    (4, 5): {
+        "top": (3, 5),
+        "bottom": (5, 5),
+    },
+    (5, 5): {
+        "top": (4, 5),
+        "right": (5, 6),
+        "left": (5, 4),
+    },
+    (5, 6): {
+        "left": (5, 5),
+        "right": (5, 7),
+    },
+    (5, 7): {
+        "left": (5, 6),
+        "top": (4, 7),
+    },
+    (4, 7): {
+        "bottom": (5, 7),
+    },
+    (5, 4): {
+        "left": (5, 3),
+        "right": (5, 5),
+    },
+    (5, 3): {
+        "right": (5, 4),
+        "top": (4, 3),
+    },
+    (4, 3): {
+        "bottom": (5, 3),
+        "left": (4, 2),
+    },
+    (4, 2): {
+        "right": (4, 3),
     },
 }
 
-SAFE_ROOM_ENTRANCES = {
-    (1, 1): {"left"},
-    (2, 2): {"right"},
-}
+SAFE_ROOMS = {(1, 1), (1, 5), (4, 4)}
 
 SIDE_EXIT_MARGIN = 1
 FALL_VOID_MARGIN = 20
@@ -388,6 +527,7 @@ class GameView(arcade.View):
 
         if not self.music_player:
             self.start_music()
+        self.activate_safe_room_checkpoint()
         self.initialized = True
 
     def ensure_sprite_list(self, name):
@@ -920,15 +1060,7 @@ class GameView(arcade.View):
         )
 
     def connected_room(self, side):
-        explicit_connection = ROOM_CONNECTIONS.get(self.current_room, {}).get(side)
-        if explicit_connection:
-            return explicit_connection
-
-        adjacent_room = self.adjacent_grid_room(side)
-        if adjacent_room in LEVEL_GRID:
-            return adjacent_room
-
-        return self.sequential_side_room(side)
+        return ROOM_CONNECTIONS.get(self.current_room, {}).get(side)
 
     def adjacent_grid_room(self, side):
         row, column = self.current_room
@@ -956,8 +1088,20 @@ class GameView(arcade.View):
 
         return None
 
-    def has_safe_room(self, side):
-        return side in SAFE_ROOM_ENTRANCES.get(self.current_room, set())
+    def activate_safe_room_checkpoint(self):
+        if self.current_room not in SAFE_ROOMS:
+            return
+
+        self.lives = MAX_LIVES
+        save_game(
+            self.current_room,
+            self.entry_side,
+            score=self.score,
+            lives=self.lives,
+            has_checkpoint=True,
+            daedalus_dialogue_complete=self.daedalus_dialogue_complete,
+        )
+        self.update_hud()
 
     def handle_room_exits(self):
         if (
@@ -987,12 +1131,8 @@ class GameView(arcade.View):
         return False
 
     def try_exit_room(self, side):
-        if self.has_safe_room(side):
-            self.enter_safe_room(side)
-            return True
-
         target_room = self.connected_room(side)
-        if target_room:
+        if target_room and target_room in LEVEL_GRID:
             self.change_room(target_room, OPPOSITE_SIDE[side])
             return True
 
