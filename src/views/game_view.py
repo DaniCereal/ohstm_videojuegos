@@ -1965,8 +1965,11 @@ class GameView(arcade.View):
         else:
             self.player_sprite.dash_available = True
 
-        if self.physics_engine.can_jump():
-            self.player_sprite.coyote_timer = 0.12
+        if (
+            self.physics_engine.can_jump()
+            and self.player_sprite.jump_lock_timer <= 0
+        ):
+            self.player_sprite.coyote_timer = 1.5
             # Reset doble salto al tocar suelo
             self.player_sprite.double_jump_available = False
             self.player_sprite.double_jump_used = False
