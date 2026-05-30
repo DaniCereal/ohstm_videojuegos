@@ -3,6 +3,9 @@
  <tileset firstgid="1" source="Tileset_Cielo_girado.tsx"/>
  <tileset firstgid="97" source="Tileset_cielo.tsx"/>
  <tileset firstgid="193" source="Tileset_Tierra_.tsx"/>
+ <tileset firstgid="289" name="CartelAbajo" tilewidth="32" tileheight="32" tilecount="1" columns="1">
+  <image source="../Mapas/CartelAbajo.png" width="34" height="34"/>
+ </tileset>
  <imagelayer id="2" name="Capa de Imagen 1">
   <image source="../Mapas/Cielo arriba.png" width="1280" height="736"/>
  </imagelayer>
