@@ -208,15 +208,15 @@
  </tile>
  <tile id="41">
   <objectgroup draworder="index" id="2">
-   <object id="1" x="1" y="-0.333333">
-    <polygon points="0,0 29.6667,30.3333 31.3333,33 0.333333,33.3333"/>
+   <object id="1" x="0.454545" y="0.575758">
+    <polygon points="0,0 28.2895,28.1824 29.8788,30.66 0.317859,30.9697"/>
    </object>
   </objectgroup>
  </tile>
  <tile id="42">
   <objectgroup draworder="index" id="2">
-   <object id="1" x="0" y="32.6667">
-    <polygon points="0,0 31,-31.6667 32.6667,-2.33333"/>
+   <object id="1" x="1.40061" y="31.3257" rotation="3.47513">
+    <polygon points="0,0 27.9478,-31.7373 29.4504,-2.33853"/>
    </object>
   </objectgroup>
  </tile>

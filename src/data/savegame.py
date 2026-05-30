@@ -17,6 +17,8 @@ def default_save():
         "lives": MAX_LIVES,
         "has_checkpoint": False,
         "daedalus_dialogue_complete": False,
+        "feather_count": 0,
+        "cleared_feather_rooms": [],
     }
 
 
@@ -29,6 +31,8 @@ def load_save():
         if len(room) != 2:
             room = DEFAULT_ROOM
 
+        raw_cleared = data.get("cleared_feather_rooms", [])
+        cleared = [tuple(r) for r in raw_cleared if isinstance(r, (list, tuple)) and len(r) == 2]
         return {
             "room": (int(room[0]), int(room[1])),
             "entry_side": data.get("entry_side", DEFAULT_ENTRY_SIDE),
@@ -38,6 +42,8 @@ def load_save():
             "daedalus_dialogue_complete": bool(
                 data.get("daedalus_dialogue_complete", False)
             ),
+            "feather_count": int(data.get("feather_count", 0)),
+            "cleared_feather_rooms": cleared,
         }
     except (FileNotFoundError, json.JSONDecodeError, TypeError, ValueError):
         data = default_save()
@@ -46,7 +52,7 @@ def load_save():
             data["entry_side"],
             data["score"],
             data["lives"],
-            data["has_checkpoint"]
+            data["has_checkpoint"],
         )
         return load_save()
 
@@ -58,6 +64,8 @@ def save_game(
     lives=MAX_LIVES,
     has_checkpoint=True,
     daedalus_dialogue_complete=False,
+    feather_count=0,
+    cleared_feather_rooms=None,
 ):
     data = {
         "room": [int(room[0]), int(room[1])],
@@ -66,6 +74,8 @@ def save_game(
         "lives": int(lives),
         "has_checkpoint": bool(has_checkpoint),
         "daedalus_dialogue_complete": bool(daedalus_dialogue_complete),
+        "feather_count": int(feather_count),
+        "cleared_feather_rooms": [list(r) for r in (cleared_feather_rooms or [])],
     }
 
     with open(SAVE_PATH, "w", encoding="utf-8") as file:
@@ -79,6 +89,6 @@ def reset_save():
         data["entry_side"],
         data["score"],
         data["lives"],
-        data["has_checkpoint"]
+        data["has_checkpoint"],
     )
     return load_save()

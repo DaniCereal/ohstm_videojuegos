@@ -74,11 +74,26 @@ LEVELS = [LEVEL_GRID[position] for position in LEVEL_ORDER]
 
 LEVEL_MUSIC = [ASSETS_ROOT / "Music" / "OST" / "Earth_1_clean.wav"] * len(LEVEL_ORDER)
 
-OVERWORLD_ROOMS = frozenset({(0, 2), (0, 3)})
+# Todas las salas de fila 0 y 1 son Olimpo
+OVERWORLD_ROOMS = frozenset({
+    (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7),
+    (1, 1), (1, 2), (1, 3), (1, 4), (1, 5),
+})
 OVERWORLD_MUSIC = [
     ASSETS_ROOT / "Music" / "OST" / "Olympus_1_clean.wav",
     ASSETS_ROOT / "Music" / "OST" / "Olympus_2_clean.wav",
 ]
+
+# Filas 3-4 → Inframundo 1, fila 5 → Inframundo 2
+UNDERWORLD_1_ROOMS = frozenset({
+    (3, 2), (3, 3), (3, 4), (3, 5), (3, 6),
+    (4, 2), (4, 3), (4, 4), (4, 5), (4, 7),
+})
+UNDERWORLD_2_ROOMS = frozenset({
+    (5, 3), (5, 4), (5, 5), (5, 6), (5, 7),
+})
+UNDERWORLD_1_MUSIC = ASSETS_ROOT / "Music" / "OST" / "Underworld_1_clean.wav"
+UNDERWORLD_2_MUSIC = ASSETS_ROOT / "Music" / "OST" / "Underworld_2_clean.wav"
 
 OPPOSITE_SIDE = {
     "left": "right",
@@ -233,6 +248,41 @@ SAFE_ROOMS = {(1, 1), (1, 5), (4, 4)}
 SIDE_EXIT_MARGIN = 1
 FALL_VOID_MARGIN = 20
 
+FEATHER_NORMAL_PATH = ASSETS_ROOT / "Sprites" / "Feathers" / "white_feather.png"
+FEATHER_GOLDEN_PATH = ASSETS_ROOT / "Sprites" / "Feathers" / "golden_feather.png"
+FEATHER_BLUE_PATH   = ASSETS_ROOT / "Sprites" / "Feathers" / "blue_timer_feather.png"
+FEATHER_UNLOCK_DOUBLE_JUMP = 0
+FEATHER_UNLOCK_DASH        = 5
+FEATHER_UNLOCK_WALL_JUMP   = 15
+FEATHER_GOLDEN_VALUE       = 5
+FEATHER_BLUE_TIMER         = 13.0
+FEATHER_BLUE_REWARD        = 5
+FEATHER_NORMAL_COUNT       = 5
+FEATHER_GOLDEN_PROB        = 0.08
+FEATHER_BLUE_TRAIL_COUNT   = 7
+FEATHER_BLUE_PENALTY       = 3
+BLUE_MUSIC_DUCK            = 0.55
+
+
+def _make_tick_wav():
+    import wave, struct, math as _m
+    path = ASSETS_ROOT / "Music" / "SE" / "tick.wav"
+    if not path.exists():
+        sr, freq, dur = 44100, 950, 0.055
+        frames = b"".join(
+            struct.pack("<h", int(32767 * _m.exp(-i / sr * 45) * _m.sin(2 * _m.pi * freq * i / sr)))
+            for i in range(int(sr * dur))
+        )
+        with wave.open(str(path), "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(sr)
+            wf.writeframes(frames)
+    return path
+
+
+TICK_SOUND_PATH = _make_tick_wav()
+
 DAEDALUS_ROOM = (2, 1)
 DAEDALUS_POSITION = (255, 170)
 ZEUS_ROOM = (0, 2)
@@ -249,6 +299,13 @@ PLATFORM_LAYER_CANDIDATES = (
     "Capa de patrones 1",
     "Ruta Uno",
 )
+
+# Capas del TMX que NO son sólidas (no se usan para colisión de plumas)
+_NONSOLD_LAYERS = frozenset({
+    "Enemies", "Coins", "NPCs", "Feathers", "Spawns", "Spawn",
+    "PlayerSpawns", "Player Spawns", "Ladders", "Moving Platforms",
+    "Backgrounds", "Background", "Decorations", "Decoration", "Fondo",
+})
 
 class GameView(arcade.View):
     """
@@ -267,6 +324,8 @@ class GameView(arcade.View):
         inherited_music_player=None,
         daedalus_dialogue_complete=False,
         inherited_overworld_track_index=0,
+        feather_count=0,
+        cleared_feather_rooms=None,
     ):
         self.last_wall_touched = 0
 
@@ -280,11 +339,15 @@ class GameView(arcade.View):
                 entry_side = save_data["entry_side"]
                 score = save_data["score"]
                 daedalus_dialogue_complete = save_data["daedalus_dialogue_complete"]
+                feather_count = save_data["feather_count"]
+                cleared_feather_rooms = save_data.get("cleared_feather_rooms", [])
             else:
                 room_position = DEFAULT_ROOM
                 entry_side = DEFAULT_ENTRY_SIDE
                 score = 0
                 daedalus_dialogue_complete = False
+                feather_count = 0
+                cleared_feather_rooms = []
             lives = MAX_LIVES
 
         if room_position is None:
@@ -329,6 +392,20 @@ class GameView(arcade.View):
         self.coin_sprites = None
         self.npc_sprites = None
         self.reset_sprites = None
+        self.feather_count = feather_count
+        self.cleared_feather_rooms = set(tuple(r) for r in (cleared_feather_rooms or []))
+        self.feather_sprites_normal = arcade.SpriteList()
+        self.feather_sprites_golden = arcade.SpriteList()
+        self.feather_sprites_blue = arcade.SpriteList()
+        self._blue_trail_sprites = arcade.SpriteList()
+        self._tex_blue = None
+        self._solid_sprite_lists = []
+        self.blue_timer_active = False
+        self.blue_timer_remaining = 0.0
+        self.blue_trail_total = 0
+        self._feather_hud_texture = None
+        self._tick_sound = arcade.load_sound(str(TICK_SOUND_PATH))
+        self._tick_timer = 0.0
         self.daedalus_npc = None
         self.daedalus_textures = []
         self.daedalus_anim_timer = 0
@@ -429,13 +506,8 @@ class GameView(arcade.View):
         self.load_voice_assets()
 
         self.player_sprite = PlayerCharacter()
-        # TEMPORAL PARA TEST
-        self.player_sprite.has_double_jump = True
-
-        self.player_sprite.has_dash = True
-        self.player_sprite.dash_available = True
-
-        self.player_sprite.has_wall_jump = True
+        self.load_feather_sprites()
+        self.apply_feather_unlocks()
 
 
 
@@ -1100,6 +1172,8 @@ class GameView(arcade.View):
             lives=self.lives,
             has_checkpoint=True,
             daedalus_dialogue_complete=self.daedalus_dialogue_complete,
+            feather_count=self.feather_count,
+            cleared_feather_rooms=self.cleared_feather_rooms,
         )
         self.update_hud()
 
@@ -1144,14 +1218,7 @@ class GameView(arcade.View):
 
     def change_room(self, target_room, entry_side):
         next_level = self.level_from_room(target_room)
-        both_overworld = self.current_room in OVERWORLD_ROOMS and target_room in OVERWORLD_ROOMS
-        either_overworld = self.current_room in OVERWORLD_ROOMS or target_room in OVERWORLD_ROOMS
-        same_track = both_overworld or (
-            not either_overworld
-            and 0 < next_level <= len(LEVEL_MUSIC)
-            and 0 < self.level <= len(LEVEL_MUSIC)
-            and LEVEL_MUSIC[next_level - 1] == LEVEL_MUSIC[self.level - 1]
-        )
+        same_track = self._music_zone(self.current_room) == self._music_zone(target_room)
 
         if same_track:
             inherited_music = self.music
@@ -1175,6 +1242,8 @@ class GameView(arcade.View):
             inherited_music_player=inherited_player,
             daedalus_dialogue_complete=self.daedalus_dialogue_complete,
             inherited_overworld_track_index=self.overworld_track_index,
+            feather_count=self.feather_count,
+            cleared_feather_rooms=self.cleared_feather_rooms,
         )
         self.window.show_view(new_game)
 
@@ -1188,6 +1257,8 @@ class GameView(arcade.View):
             lives=self.lives,
             has_checkpoint=True,
             daedalus_dialogue_complete=self.daedalus_dialogue_complete,
+            feather_count=self.feather_count,
+            cleared_feather_rooms=self.cleared_feather_rooms,
         )
         self.play_sfx(self.collect_coin_sound)
         self.place_player_at_entry()
@@ -1195,6 +1266,9 @@ class GameView(arcade.View):
 
     def lose_life(self):
         self.lives -= 1
+        self.feather_count = max(0, self.feather_count - 2)
+        self.apply_feather_unlocks()
+        self.update_hud()
         if self.lives != 0:
             arcade.play_sound(
             self.gameover_sound, 
@@ -1229,18 +1303,214 @@ class GameView(arcade.View):
     def update_hud(self):
         pass
 
+    def load_feather_sprites(self):
+        self.feather_sprites_normal = arcade.SpriteList()
+        self.feather_sprites_golden = arcade.SpriteList()
+        self.feather_sprites_blue = arcade.SpriteList()
+        self._blue_trail_sprites = arcade.SpriteList()
+
+        tex_n = arcade.load_texture(str(FEATHER_NORMAL_PATH))
+        tex_g = arcade.load_texture(str(FEATHER_GOLDEN_PATH))
+        tex_b = arcade.load_texture(str(FEATHER_BLUE_PATH))
+        self._feather_hud_texture = tex_n
+        self._tex_blue = tex_b
+
+        # Cache de TODAS las capas sólidas del mapa (para _is_open_air)
+        self._solid_sprite_lists = []
+        for name, slist in self.scene._name_mapping.items():
+            if name not in _NONSOLD_LAYERS and len(slist) > 0:
+                self._solid_sprite_lists.append(slist)
+
+        # No colocar plumas en salas ya recolectadas
+        if self.current_room in self.cleared_feather_rooms:
+            return
+
+        if "Feathers" in self.tile_map.object_lists:
+            for obj in self.tile_map.object_lists["Feathers"]:
+                props = obj.properties or {}
+                ftype = props.get("feather_type", "normal")
+                cx, cy = self.tile_map.get_cartesian(obj.shape[0], obj.shape[1])
+                if ftype == "golden":
+                    s = arcade.Sprite(scale=0.9)
+                    s.texture = tex_g
+                    s.center_x, s.center_y = cx, cy
+                    self.feather_sprites_golden.append(s)
+                elif ftype == "blue":
+                    s = arcade.Sprite(scale=0.9)
+                    s.texture = tex_b
+                    s.center_x, s.center_y = cx, cy
+                    self.feather_sprites_blue.append(s)
+                else:
+                    s = arcade.Sprite(scale=0.9)
+                    s.texture = tex_n
+                    s.center_x, s.center_y = cx, cy
+                    self.feather_sprites_normal.append(s)
+        else:
+            self._auto_place_feathers(tex_n, tex_g, tex_b)
+
+    def _is_open_air(self, x, y, radius=56):
+        lists = self._solid_sprite_lists if self._solid_sprite_lists else [self.platform_sprites]
+        for slist in lists:
+            for sprite in slist:
+                if abs(sprite.center_x - x) < radius and abs(sprite.center_y - y) < radius:
+                    return False
+        return True
+
+    def _find_open_air_positions(self, rng, count, min_y_frac=0.0, max_y_frac=1.0):
+        positions = []
+        tile = int(32 * TILE_SCALING)
+        w = max(int(self.map_width) - tile, tile + 1)
+        full_h = int(self.map_height)
+        y_lo = max(tile, int(full_h * min_y_frac))
+        y_hi = max(y_lo + 1, min(full_h - tile, int(full_h * max_y_frac)))
+        for _ in range(count * 40):
+            x = rng.randint(tile, w)
+            y = rng.randint(y_lo, y_hi)
+            if self._is_open_air(x, y):
+                positions.append((x, y))
+            if len(positions) >= count:
+                break
+        return positions
+
+    def _auto_place_feathers(self, tex_n, tex_g, tex_b):
+        rng = random.Random(hash(self.current_room))
+        show_golden = rng.random() < FEATHER_GOLDEN_PROB
+
+        # Normales: mitad baja-media del mapa (alcanzables con salto básico)
+        normal_positions = self._find_open_air_positions(
+            rng, FEATHER_NORMAL_COUNT + 3, min_y_frac=0.15, max_y_frac=0.60
+        )
+        normal_positions = normal_positions[:FEATHER_NORMAL_COUNT]
+
+        # Dorada: zona alta (requiere doble salto o dash)
+        golden_pos = None
+        if show_golden:
+            golden_candidates = self._find_open_air_positions(
+                rng, 5, min_y_frac=0.60, max_y_frac=0.95
+            )
+            if golden_candidates:
+                golden_pos = rng.choice(golden_candidates)
+
+        # Azul trigger: zona media del mapa, cerca del centro horizontal
+        blue_candidates = self._find_open_air_positions(
+            rng, 8, min_y_frac=0.25, max_y_frac=0.70
+        )
+        mid_x = self.map_width / 2
+        blue_pos = min(blue_candidates, key=lambda p: abs(p[0] - mid_x)) if blue_candidates else None
+
+        for x, y in normal_positions:
+            s = arcade.Sprite(scale=0.9)
+            s.texture = tex_n
+            s.center_x, s.center_y = x, y
+            self.feather_sprites_normal.append(s)
+
+        if golden_pos:
+            s = arcade.Sprite(scale=0.9)
+            s.texture = tex_g
+            s.center_x, s.center_y = golden_pos
+            self.feather_sprites_golden.append(s)
+
+        if blue_pos:
+            s = arcade.Sprite(scale=0.9)
+            s.texture = tex_b
+            s.center_x, s.center_y = blue_pos
+            self.feather_sprites_blue.append(s)
+
+    def _spawn_blue_trail(self, trigger_x, trigger_y):
+        count = FEATHER_BLUE_TRAIL_COUNT
+        step = 155   # distancia entre plumas consecutivas
+        margin = 55
+        rng = random.Random(hash(self.current_room) ^ 0xBEEF)
+
+        # Zigzag simétrico: derecha, izquierda, derecha más lejos, ...
+        # Máximo spread ≈ step * ceil(count/2) ≈ 620px del trigger
+        offsets = []
+        for i in range(count):
+            half = (i // 2) + 1
+            direction = 1 if i % 2 == 0 else -1
+            offsets.append(direction * step * half)
+
+        for offset in offsets:
+            x = trigger_x + offset
+            x = max(margin, min(x, self.map_width - margin))
+            base_y = trigger_y + rng.randint(-60, 60)
+
+            placed = False
+            for dy in (0, 60, -60, 120, -120, 180, -180, 240, -240):
+                cy = max(60, min(base_y + dy, self.map_height - 40))
+                if self._is_open_air(x, cy):
+                    base_y = cy
+                    placed = True
+                    break
+            if not placed:
+                for dx in (50, -50, 100, -100):
+                    cx = max(margin, min(x + dx, self.map_width - margin))
+                    for dy in (0, 60, -60, 120, -120):
+                        cy = max(60, min(base_y + dy, self.map_height - 40))
+                        if self._is_open_air(cx, cy):
+                            x, base_y = cx, cy
+                            placed = True
+                            break
+                    if placed:
+                        break
+
+            s = arcade.Sprite(scale=0.9)
+            s.texture = self._tex_blue
+            s.center_x = x
+            s.center_y = base_y
+            self._blue_trail_sprites.append(s)
+        self.blue_trail_total = len(self._blue_trail_sprites)
+
+    def apply_feather_unlocks(self):
+        if self.player_sprite is None:
+            return
+        n = self.feather_count
+        self.player_sprite.has_double_jump = n >= FEATHER_UNLOCK_DOUBLE_JUMP
+        self.player_sprite.double_jump_available = self.player_sprite.has_double_jump
+        self.player_sprite.has_dash = n >= FEATHER_UNLOCK_DASH
+        self.player_sprite.dash_available = self.player_sprite.has_dash
+        self.player_sprite.has_wall_jump = n >= FEATHER_UNLOCK_WALL_JUMP
+
+    def add_feathers(self, amount):
+        self.feather_count += amount
+        self.cleared_feather_rooms.add(self.current_room)
+        self.apply_feather_unlocks()
+        self.play_sfx(self.collect_coin_sound)
+        self.update_hud()
+
     def start_music(self):
         if self.music_player:
             self.music_player.delete()
-        if self.current_room in OVERWORLD_ROOMS:
+        zone = self._music_zone(self.current_room)
+        if zone == "overworld":
             self.overworld_track_index = 0
             self._play_overworld_track()
+        elif zone == "underworld1":
+            self.music = arcade.load_sound(str(UNDERWORLD_1_MUSIC), streaming=True)
+            self.music_player = arcade.play_sound(
+                self.music, volume=SETTINGS.music_volume, loop=True
+            )
+        elif zone == "underworld2":
+            self.music = arcade.load_sound(str(UNDERWORLD_2_MUSIC), streaming=True)
+            self.music_player = arcade.play_sound(
+                self.music, volume=SETTINGS.music_volume, loop=True
+            )
         else:
             music_path = LEVEL_MUSIC[self.level - 1]
             self.music = arcade.load_sound(str(music_path), streaming=True)
             self.music_player = arcade.play_sound(
                 self.music, volume=SETTINGS.music_volume, loop=True
             )
+
+    @staticmethod
+    def _music_zone(room):
+        if room in OVERWORLD_ROOMS:
+            return "overworld"
+        if room in UNDERWORLD_1_ROOMS:
+            return "underworld1"
+        if room in UNDERWORLD_2_ROOMS:
+            return "underworld2"
+        return "earth"
 
     def _play_overworld_track(self):
         path = OVERWORLD_MUSIC[self.overworld_track_index % len(OVERWORLD_MUSIC)]
@@ -1280,6 +1550,10 @@ class GameView(arcade.View):
 
         # Draw our Scene
         self.scene.draw()
+        self.feather_sprites_normal.draw()
+        self.feather_sprites_golden.draw()
+        self.feather_sprites_blue.draw()
+        self._blue_trail_sprites.draw()
 
         # Activate our GUI camera
         self.gui_camera.use()
@@ -1306,30 +1580,69 @@ class GameView(arcade.View):
             font_name=font,
         )
 
-        arcade.draw_text(
-            f"✦  {self.score}",
-            pad, h - 42,
-            (212, 165, 78),
-            13,
-            anchor_x="left",
-            anchor_y="center",
-            font_name=font,
-        )
+        if self._feather_hud_texture:
+            icon = 18
+            arcade.draw_texture_rect(
+                self._feather_hud_texture,
+                arcade.LBWH(pad, h - 50 - icon // 2, icon, icon),
+            )
+            arcade.draw_text(
+                str(self.feather_count),
+                pad + icon + 4, h - 50,
+                (180, 210, 245),
+                13,
+                anchor_x="left",
+                anchor_y="center",
+                font_name=font,
+            )
+
+        if self.blue_timer_active:
+            color = (100, 180, 255) if self.blue_timer_remaining > 5 else (255, 80, 80)
+            cx = self.window.width / 2
+            arcade.draw_text(
+                f"{self.blue_timer_remaining:.1f}s",
+                cx, h - 20,
+                color,
+                22,
+                anchor_x="center",
+                anchor_y="center",
+                font_name=font,
+                bold=True,
+            )
+            collected = self.blue_trail_total - len(self._blue_trail_sprites)
+            arcade.draw_text(
+                f"{collected} / {self.blue_trail_total}",
+                cx, h - 46,
+                (180, 210, 245),
+                15,
+                anchor_x="center",
+                anchor_y="center",
+                font_name=font,
+            )
 
     def _draw_interaction_prompt(self):
         if self.dialogue_active or not self.can_talk_to_daedalus():
             return
 
+        cx = self.window.width / 2
+        # Caja de fondo
+        prompt_w, prompt_h = 230, 30
+        arcade.draw_rect_filled(
+            arcade.LBWH(cx - prompt_w / 2, 66, prompt_w, prompt_h),
+            (8, 10, 17, 190),
+        )
+        arcade.draw_rect_outline(
+            arcade.LBWH(cx - prompt_w / 2, 66, prompt_w, prompt_h),
+            (212, 165, 78, 180), 1,
+        )
         arcade.draw_text(
-            "E",
-            self.window.width / 2,
-            82,
-            (255, 247, 220),
-            18,
+            "[E]  Hablar con Dédalo",
+            cx, 81,
+            (212, 165, 78),
+            14,
             anchor_x="center",
             anchor_y="center",
             font_name="Garamond",
-            bold=True,
         )
 
     def _draw_dialogue_box(self):
@@ -1645,6 +1958,59 @@ class GameView(arcade.View):
                 self.play_sfx(self.collect_coin_sound)
                 self.score += 75
                 self.update_hud()
+
+        # Feathers
+        for f in arcade.check_for_collision_with_list(self.player_sprite, self.feather_sprites_normal):
+            f.remove_from_sprite_lists()
+            self.add_feathers(1)
+
+        for f in arcade.check_for_collision_with_list(self.player_sprite, self.feather_sprites_golden):
+            f.remove_from_sprite_lists()
+            self.add_feathers(FEATHER_GOLDEN_VALUE)
+
+        # Trigger azul — al tocarlo desaparece para siempre y spawnea la estela
+        if not self.blue_timer_active:
+            for f in arcade.check_for_collision_with_list(self.player_sprite, self.feather_sprites_blue):
+                tx, ty = f.center_x, f.center_y
+                f.remove_from_sprite_lists()
+                self._spawn_blue_trail(tx, ty)
+                self.blue_timer_active = True
+                self.blue_timer_remaining = FEATHER_BLUE_TIMER
+                self._tick_timer = 0.0
+                if self.music_player:
+                    self.music_player.volume = SETTINGS.music_volume * BLUE_MUSIC_DUCK
+                break
+
+        # Estela azul — recoger durante el reto
+        if self.blue_timer_active:
+            for f in arcade.check_for_collision_with_list(self.player_sprite, self._blue_trail_sprites):
+                f.remove_from_sprite_lists()
+
+            if self.blue_trail_total > 0 and len(self._blue_trail_sprites) == 0:
+                self.blue_timer_active = False
+                self.blue_trail_total = 0
+                if self.music_player:
+                    self.music_player.volume = SETTINGS.music_volume
+                self.add_feathers(FEATHER_BLUE_REWARD)
+
+            self.blue_timer_remaining -= delta_time
+            if self.blue_timer_remaining <= 0:
+                self.blue_timer_active = False
+                self.blue_trail_total = 0
+                self._blue_trail_sprites.clear()
+                if self.music_player:
+                    self.music_player.volume = SETTINGS.music_volume
+                # Penalización por fallo
+                self.feather_count = max(0, self.feather_count - FEATHER_BLUE_PENALTY)
+                self.apply_feather_unlocks()
+                self.update_hud()
+                self.play_sfx(self.hit_sound)
+
+            # Tick sound cada segundo
+            self._tick_timer -= delta_time
+            if self._tick_timer <= 0:
+                self._tick_timer = 1.0
+                self.play_sfx(self._tick_sound)
 
         self.update_camera()
 
