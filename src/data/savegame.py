@@ -19,6 +19,9 @@ def default_save():
         "daedalus_dialogue_complete": False,
         "feather_count": 0,
         "cleared_feather_rooms": [],
+        "has_double_jump": False,
+        "has_dash": False,
+        "has_wall_jump": False,
     }
 
 
@@ -44,6 +47,9 @@ def load_save():
             ),
             "feather_count": int(data.get("feather_count", 0)),
             "cleared_feather_rooms": cleared,
+            "has_double_jump": bool(data.get("has_double_jump", False)),
+            "has_dash": bool(data.get("has_dash", False)),
+            "has_wall_jump": bool(data.get("has_wall_jump", False)),
         }
     except (FileNotFoundError, json.JSONDecodeError, TypeError, ValueError):
         data = default_save()
@@ -66,6 +72,9 @@ def save_game(
     daedalus_dialogue_complete=False,
     feather_count=0,
     cleared_feather_rooms=None,
+    has_double_jump=False,
+    has_dash=False,
+    has_wall_jump=False,
 ):
     data = {
         "room": [int(room[0]), int(room[1])],
@@ -76,6 +85,9 @@ def save_game(
         "daedalus_dialogue_complete": bool(daedalus_dialogue_complete),
         "feather_count": int(feather_count),
         "cleared_feather_rooms": [list(r) for r in (cleared_feather_rooms or [])],
+        "has_double_jump": bool(has_double_jump),
+        "has_dash": bool(has_dash),
+        "has_wall_jump": bool(has_wall_jump),
     }
 
     with open(SAVE_PATH, "w", encoding="utf-8") as file:

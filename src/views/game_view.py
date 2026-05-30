@@ -251,10 +251,18 @@ FALL_VOID_MARGIN = 20
 FEATHER_NORMAL_PATH = ASSETS_ROOT / "Sprites" / "Feathers" / "white_feather.png"
 FEATHER_GOLDEN_PATH = ASSETS_ROOT / "Sprites" / "Feathers" / "golden_feather.png"
 FEATHER_BLUE_PATH   = ASSETS_ROOT / "Sprites" / "Feathers" / "blue_timer_feather.png"
-FEATHER_UNLOCK_DOUBLE_JUMP = 0
-FEATHER_UNLOCK_DASH        = 5
-FEATHER_UNLOCK_WALL_JUMP   = 15
 FEATHER_GOLDEN_VALUE       = 5
+
+# Tiendas de habilidades: sala → {tipo, coste, nombre}
+ABILITY_SHOPS = {
+    (0, 1): {"type": "life",        "cost": 12, "label": "una Vida extra"},
+    (0, 7): {"type": "life",        "cost": 12, "label": "una Vida extra"},
+    (2, 7): {"type": "life",        "cost": 12, "label": "una Vida extra"},
+    (3, 3): {"type": "wall_jump",   "cost": 18, "label": "Salto en Pared"},
+    (4, 7): {"type": "double_jump", "cost": 18, "label": "Doble Salto"},
+    (0, 6): {"type": "dash",        "cost": 12, "label": "Dash"},
+}
+SHOP_INTERACT_DISTANCE = 90
 FEATHER_BLUE_TIMER         = 13.0
 FEATHER_BLUE_REWARD        = 5
 FEATHER_NORMAL_COUNT       = 5
@@ -326,6 +334,9 @@ class GameView(arcade.View):
         inherited_overworld_track_index=0,
         feather_count=0,
         cleared_feather_rooms=None,
+        has_double_jump=False,
+        has_dash=False,
+        has_wall_jump=False,
     ):
         self.last_wall_touched = 0
 
@@ -341,6 +352,9 @@ class GameView(arcade.View):
                 daedalus_dialogue_complete = save_data["daedalus_dialogue_complete"]
                 feather_count = save_data["feather_count"]
                 cleared_feather_rooms = save_data.get("cleared_feather_rooms", [])
+                has_double_jump = save_data.get("has_double_jump", False)
+                has_dash = save_data.get("has_dash", False)
+                has_wall_jump = save_data.get("has_wall_jump", False)
             else:
                 room_position = DEFAULT_ROOM
                 entry_side = DEFAULT_ENTRY_SIDE
@@ -348,6 +362,9 @@ class GameView(arcade.View):
                 daedalus_dialogue_complete = False
                 feather_count = 0
                 cleared_feather_rooms = []
+                has_double_jump = False
+                has_dash = False
+                has_wall_jump = False
             lives = MAX_LIVES
 
         if room_position is None:
@@ -394,6 +411,11 @@ class GameView(arcade.View):
         self.reset_sprites = None
         self.feather_count = feather_count
         self.cleared_feather_rooms = set(tuple(r) for r in (cleared_feather_rooms or []))
+        self.has_double_jump = has_double_jump
+        self.has_dash = has_dash
+        self.has_wall_jump = has_wall_jump
+        self.shop_sprite = None
+        self.shop_data = None
         self.feather_sprites_normal = arcade.SpriteList()
         self.feather_sprites_golden = arcade.SpriteList()
         self.feather_sprites_blue = arcade.SpriteList()
@@ -560,6 +582,7 @@ class GameView(arcade.View):
                 self.scene.add_sprite("Enemies", enemy)
 
         self.add_room_npcs()
+        self._setup_shop()
 
         # Create a Platformer Physics Engine, this will handle moving our
         # player as well as collisions between the player sprite and
@@ -1174,6 +1197,9 @@ class GameView(arcade.View):
             daedalus_dialogue_complete=self.daedalus_dialogue_complete,
             feather_count=self.feather_count,
             cleared_feather_rooms=self.cleared_feather_rooms,
+            has_double_jump=self.has_double_jump,
+            has_dash=self.has_dash,
+            has_wall_jump=self.has_wall_jump,
         )
         self.update_hud()
 
@@ -1244,6 +1270,9 @@ class GameView(arcade.View):
             inherited_overworld_track_index=self.overworld_track_index,
             feather_count=self.feather_count,
             cleared_feather_rooms=self.cleared_feather_rooms,
+            has_double_jump=self.has_double_jump,
+            has_dash=self.has_dash,
+            has_wall_jump=self.has_wall_jump,
         )
         self.window.show_view(new_game)
 
@@ -1259,6 +1288,9 @@ class GameView(arcade.View):
             daedalus_dialogue_complete=self.daedalus_dialogue_complete,
             feather_count=self.feather_count,
             cleared_feather_rooms=self.cleared_feather_rooms,
+            has_double_jump=self.has_double_jump,
+            has_dash=self.has_dash,
+            has_wall_jump=self.has_wall_jump,
         )
         self.play_sfx(self.collect_coin_sound)
         self.place_player_at_entry()
@@ -1314,6 +1346,7 @@ class GameView(arcade.View):
         tex_b = arcade.load_texture(str(FEATHER_BLUE_PATH))
         self._feather_hud_texture = tex_n
         self._tex_blue = tex_b
+        self._tex_golden = tex_g
 
         # Cache de TODAS las capas sólidas del mapa (para _is_open_air)
         self._solid_sprite_lists = []
@@ -1461,15 +1494,80 @@ class GameView(arcade.View):
             self._blue_trail_sprites.append(s)
         self.blue_trail_total = len(self._blue_trail_sprites)
 
+    def _setup_shop(self):
+        self.shop_sprite = None
+        self.shop_data = None
+        if self.current_room not in ABILITY_SHOPS:
+            return
+        shop = ABILITY_SHOPS[self.current_room]
+        # Si la habilidad ya está comprada, no mostrar tienda
+        if shop["type"] == "double_jump" and self.has_double_jump:
+            return
+        if shop["type"] == "dash" and self.has_dash:
+            return
+        if shop["type"] == "wall_jump" and self.has_wall_jump:
+            return
+        # Colocar marcador en aire libre, preferiblemente cerca del centro horizontal
+        if not self._tex_golden:
+            return
+        rng = random.Random(hash(self.current_room) ^ 0xA17A4)
+        candidates = self._find_open_air_positions(rng, 20, min_y_frac=0.15, max_y_frac=0.75)
+        if not candidates:
+            return
+        mid_x = self.map_width / 2
+        cx, cy = min(candidates, key=lambda p: abs(p[0] - mid_x))
+        s = arcade.Sprite(scale=1.5)
+        s.texture = self._tex_golden
+        s.center_x, s.center_y = cx, cy
+        self.shop_sprite = s
+        self.shop_data = shop
+
+    def _can_use_shop(self):
+        if not self.shop_sprite or not self.shop_data or not self.player_sprite:
+            return False
+        dist = math.hypot(
+            self.player_sprite.center_x - self.shop_sprite.center_x,
+            self.player_sprite.center_y - self.shop_sprite.center_y,
+        )
+        return dist <= SHOP_INTERACT_DISTANCE
+
+    def _use_shop(self):
+        if not self.shop_data:
+            return
+        shop = self.shop_data
+        cost = shop["cost"]
+        stype = shop["type"]
+        if stype == "life" and self.lives >= MAX_LIVES:
+            return
+        if self.feather_count < cost:
+            return
+        self.feather_count -= cost
+        if stype == "life":
+            self.lives = min(self.lives + 1, MAX_LIVES)
+        elif stype == "double_jump":
+            self.has_double_jump = True
+            self.shop_sprite = None
+            self.shop_data = None
+        elif stype == "dash":
+            self.has_dash = True
+            self.shop_sprite = None
+            self.shop_data = None
+        elif stype == "wall_jump":
+            self.has_wall_jump = True
+            self.shop_sprite = None
+            self.shop_data = None
+        self.apply_feather_unlocks()
+        self.update_hud()
+        self.play_sfx(self.collect_coin_sound)
+
     def apply_feather_unlocks(self):
         if self.player_sprite is None:
             return
-        n = self.feather_count
-        self.player_sprite.has_double_jump = n >= FEATHER_UNLOCK_DOUBLE_JUMP
-        self.player_sprite.double_jump_available = self.player_sprite.has_double_jump
-        self.player_sprite.has_dash = n >= FEATHER_UNLOCK_DASH
-        self.player_sprite.dash_available = self.player_sprite.has_dash
-        self.player_sprite.has_wall_jump = n >= FEATHER_UNLOCK_WALL_JUMP
+        self.player_sprite.has_double_jump = self.has_double_jump
+        self.player_sprite.double_jump_available = self.has_double_jump
+        self.player_sprite.has_dash = self.has_dash
+        self.player_sprite.dash_available = self.has_dash
+        self.player_sprite.has_wall_jump = self.has_wall_jump
 
     def add_feathers(self, amount):
         self.feather_count += amount
@@ -1554,6 +1652,12 @@ class GameView(arcade.View):
         self.feather_sprites_golden.draw()
         self.feather_sprites_blue.draw()
         self._blue_trail_sprites.draw()
+        if self.shop_sprite:
+            arcade.draw_circle_filled(
+                self.shop_sprite.center_x, self.shop_sprite.center_y + 8,
+                36, (212, 165, 78, 55),
+            )
+            arcade.draw_sprite(self.shop_sprite)
 
         # Activate our GUI camera
         self.gui_camera.use()
@@ -1621,28 +1725,43 @@ class GameView(arcade.View):
             )
 
     def _draw_interaction_prompt(self):
-        if self.dialogue_active or not self.can_talk_to_daedalus():
+        if self.dialogue_active:
+            return
+        cx = self.window.width / 2
+        font = "Garamond"
+
+        if self.can_talk_to_daedalus():
+            text = "[E]  Hablar con Dédalo"
+            color = (212, 165, 78)
+        elif self._can_use_shop():
+            shop = self.shop_data
+            cost = shop["cost"]
+            stype = shop["type"]
+            if stype == "life" and self.lives >= MAX_LIVES:
+                text = "Vida máxima — no puedes comprar más"
+                color = (150, 150, 150)
+            elif self.feather_count < cost:
+                text = f"[E]  {shop['label']}  —  {cost} plumas  (tienes {self.feather_count})"
+                color = (200, 80, 80)
+            else:
+                text = f"[E]  {shop['label']}  —  {cost} plumas"
+                color = (212, 165, 78)
+        else:
             return
 
-        cx = self.window.width / 2
-        # Caja de fondo
-        prompt_w, prompt_h = 230, 30
+        prompt_w = max(260, len(text) * 8)
+        prompt_h = 30
         arcade.draw_rect_filled(
             arcade.LBWH(cx - prompt_w / 2, 66, prompt_w, prompt_h),
             (8, 10, 17, 190),
         )
         arcade.draw_rect_outline(
             arcade.LBWH(cx - prompt_w / 2, 66, prompt_w, prompt_h),
-            (212, 165, 78, 180), 1,
+            (*color[:3], 180), 1,
         )
         arcade.draw_text(
-            "[E]  Hablar con Dédalo",
-            cx, 81,
-            (212, 165, 78),
-            14,
-            anchor_x="center",
-            anchor_y="center",
-            font_name="Garamond",
+            text, cx, 81, color, 14,
+            anchor_x="center", anchor_y="center", font_name=font,
         )
 
     def _draw_dialogue_box(self):
@@ -2200,9 +2319,13 @@ class GameView(arcade.View):
                 self.stop_dialogue_voice()
             return
 
-        if key == arcade.key.E and self.can_talk_to_daedalus():
-            self.start_daedalus_dialogue()
-            return
+        if key == arcade.key.E:
+            if self.can_talk_to_daedalus():
+                self.start_daedalus_dialogue()
+                return
+            if self._can_use_shop():
+                self._use_shop()
+                return
 
         if key == SETTINGS.key_pause:
             from views.pause_view import PauseMenuView
