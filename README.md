@@ -11,16 +11,28 @@ Para ejecutar este videojuego se necesitara la instalacion de lo dicho con anter
 
 La organizacion de este trabajo se divide en tres carpetas:
     assets: Contiene los recursos multimedia y visuales.
+
         Images: Imágenes con el logo del juego y de la Universidad de Alcalá.
+
         Mapas: Fondos para los diferentes niveles, al igual que las plataformas que los construyen.
-        Mp4, SFX y Music: Música del juego (de cada nivel, pantallas de ajuste o menú), efectos especiales y sonidos (tanto al hablar como de las acciones de los personajes).Niveles: Todos los niveles creados en Tiled, los tilesets que los conforman y la perspectiva de cómo se vería todo junto guardado en un .world.
+
+        Mp4, SFX y Music: Música del juego (de cada nivel, pantallas de ajuste o menú), efectos especiales y sonidos (tanto al hablar como de las acciones de los personajes).
+        Niveles: Todos los niveles creados en Tiled, los tilesets que los conforman y la perspectiva de cómo se vería todo junto guardado en un .world.
+
         Sprites: Representaciones de nuestros personajes en formato de sprites con un toque artístico de pixel art.
+
     Docs: Documentación del proyecto.
-        Memoria: Para dar contexto a la historia y a la aparición de los personajes. También incluye la temática que va a tener el juego tanto en historia como en jugabilidad.Diálogos: Los textos que van a tener nuestros personajes entre sí.
+
+        Memoria: Para dar contexto a la historia y a la aparición de los personajes. También incluye la temática que va a tener el juego tanto en historia como en jugabilidad.
+        Diálogos: Los textos que van a tener nuestros personajes entre sí.
     Src: Código fuente del juego.
+
         Data: La información de guardado para almacenar el progreso.
+
         Generación: El código encargado de generar los personajes con sus respectivos sprites y datos acerca de su movimiento.
+
         Pantallas: La creación de las diferentes pantallas que puede haber en el videojuego, como el menú, los ajustes e incluso las pantallas donde se va a desarrollar el juego.
+        
 
 
 
