@@ -104,6 +104,69 @@
             "width": 1280,
             "x": 3072,
             "y": -608
+        },
+        {
+            "fileName": "1-5.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 5632,
+            "y": 128
+        },
+        {
+            "fileName": "1-4.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 4352,
+            "y": 128
+        },
+        {
+            "fileName": "3-5.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 5632,
+            "y": 1600
+        },
+        {
+            "fileName": "3-6.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 6912,
+            "y": 1600
+        },
+        {
+            "fileName": "4-5.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 5632,
+            "y": 2336
+        },
+        {
+            "fileName": "5-5.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 5632,
+            "y": 3072
+        },
+        {
+            "fileName": "5-6.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 6912,
+            "y": 3072
+        },
+        {
+            "fileName": "5-7.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 8192,
+            "y": 3072
+        },
+        {
+            "fileName": "4-7.tmx",
+            "height": 736,
+            "width": 1280,
+            "x": 8192,
+            "y": 2336
         }
     ],
     "onlyShowAdjacentMaps": false,
