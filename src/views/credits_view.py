@@ -10,11 +10,14 @@ class CreditsView(arcade.View):
     Vista de creditos con scroll vertical estilo pelicula.
     """
 
-    def __init__(self, previous_view):
+    def __init__(self, previous_view, music_player=None, use_main_menu=False):
         super().__init__()
         self.previous_view = previous_view
         self.music = arcade.load_sound("../assets/Music/OST/MusicaCreditos.ogg")
         self.music_player = None
+        self._handoff_player = music_player  # pre-playing credits track (good ending)
+        self._fade_music = True              # False when music is already at full volume
+        self._use_main_menu = use_main_menu  # ESC goes to MainMenu instead of previous_view
         self.fade_duration = 1.4
         self.fade_elapsed = 0
         self.fading_in = False
@@ -137,8 +140,19 @@ class CreditsView(arcade.View):
         self.fade_elapsed = 0
         self.fading_in = True
         self.returning_to_menu = False
-        self._set_previous_volume(SETTINGS.music_volume)
-        self.music_player = self.music.play(volume=0, loop=True)
+
+        if self._handoff_player is not None:
+            # Good ending: credits music already playing — take ownership, skip crossfade
+            self.music_player = self._handoff_player
+            self._handoff_player = None
+            self.music_player.volume = SETTINGS.music_volume
+            self._pause_previous_music()
+            self._fade_music = False
+        else:
+            # Normal path or bad ending: start credits music and crossfade
+            self._set_previous_volume(SETTINGS.music_volume)
+            self.music_player = self.music.play(volume=0, loop=True)
+            self._fade_music = True
 
     def on_draw(self):
         self.clear()
@@ -242,22 +256,29 @@ class CreditsView(arcade.View):
         target_volume = SETTINGS.music_volume
 
         if self.fading_in:
-            self._set_previous_volume(target_volume * (1 - progress))
-            self._set_credits_volume(target_volume * progress)
+            if self._fade_music:
+                self._set_previous_volume(target_volume * (1 - progress))
+                self._set_credits_volume(target_volume * progress)
 
             if progress >= 1:
                 self.fading_in = False
-                self._pause_previous_music()
-                self._set_credits_volume(target_volume)
+                if self._fade_music:
+                    self._pause_previous_music()
+                    self._set_credits_volume(target_volume)
 
         elif self.returning_to_menu:
             self._set_credits_volume(target_volume * (1 - progress))
-            self._set_previous_volume(target_volume * progress)
+            if not self._use_main_menu:
+                self._set_previous_volume(target_volume * progress)
 
             if progress >= 1:
                 self._stop_music()
-                self._set_previous_volume(target_volume)
-                self.window.show_view(self.previous_view)
+                if self._use_main_menu:
+                    from views.menu_view import MainMenu
+                    self.window.show_view(MainMenu())
+                else:
+                    self._set_previous_volume(target_volume)
+                    self.window.show_view(self.previous_view)
 
     def _transition_overlay_alpha(self):
         progress = min(self.fade_elapsed / self.fade_duration, 1)
@@ -299,5 +320,6 @@ class CreditsView(arcade.View):
         self.fade_elapsed = 0
         self.fading_in = False
         self.returning_to_menu = True
-        self._play_previous_music()
-        self._set_previous_volume(0)
+        if not self._use_main_menu:
+            self._play_previous_music()
+            self._set_previous_volume(0)

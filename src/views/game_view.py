@@ -978,6 +978,10 @@ class GameView(arcade.View):
         self.dialogue_key = None
         self.stop_dialogue_voice()
 
+        if key in ("hades_no_zeus", "hades_zeus"):
+            from views.ending_view import EndingView
+            self.window.show_view(EndingView(good_ending=(key == "hades_zeus"), previous_view=self))
+
     def exit_dialogue(self):
         if self.dialogue_key and self.active_dialogue_lines:
             self.dialogue_progress[self.dialogue_key] = self.dialogue_index
