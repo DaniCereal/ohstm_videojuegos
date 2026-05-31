@@ -249,10 +249,10 @@ MAX_HEARTS = 6
 SIDE_EXIT_MARGIN = 1
 FALL_VOID_MARGIN = 20
 ENTRY_SPAWN_POINTS = {
-    "left": (48, 448),
-    "right": (1232, 448),
+    "left": (32, 650),
+    "right": (1900, 650),
     "bottom": (752, 64),
-    "top": (640, 656),
+    "top": (1000, 1100),
 }
 
 FEATHER_NORMAL_PATH = ASSETS_ROOT / "Sprites" / "Feathers" / "white_feather.png"
