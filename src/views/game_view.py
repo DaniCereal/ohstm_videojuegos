@@ -503,6 +503,7 @@ class GameView(arcade.View):
         self.dialogue_active = False
         self.dialogue_index = 0
         self.dialogue_exit_button_rect = None
+        self.map_open = False
         self.daedalus_dialogue_complete = daedalus_dialogue_complete
         self.daedalus_second_dialogue_complete = daedalus_second_dialogue_complete
         self.talked_to_zeus = talked_to_zeus
@@ -1878,6 +1879,8 @@ class GameView(arcade.View):
         self._draw_hud()
         self._draw_interaction_prompt()
         self._draw_dialogue_box()
+        if self.map_open:
+            self._draw_large_map()
         self.draw_crt_filter()
 
     def _draw_hud(self):
@@ -1936,6 +1939,128 @@ class GameView(arcade.View):
                 anchor_y="center",
                 font_name=font,
             )
+
+    def _draw_large_map(self):
+        rooms = set(LEVEL_GRID)
+        if not rooms:
+            return
+
+        width = self.window.width
+        height = self.window.height
+        arcade.draw_rect_filled(arcade.LBWH(0, 0, width, height), (4, 6, 11, 212))
+
+        title_y = height - 70
+        arcade.draw_text(
+            "MAPA",
+            width / 2,
+            title_y,
+            (238, 230, 206),
+            34,
+            anchor_x="center",
+            anchor_y="center",
+            font_name="Garamond",
+        )
+        arcade.draw_text(
+            "Esc / M para cerrar",
+            width / 2,
+            title_y - 34,
+            (176, 166, 142),
+            15,
+            anchor_x="center",
+            anchor_y="center",
+            font_name="Garamond",
+        )
+
+        tile = 48
+        gap = 22
+        step = tile + gap
+        rows = [room[0] for room in rooms]
+        columns = [room[1] for room in rooms]
+        min_row, max_row = min(rows), max(rows)
+        min_col, max_col = min(columns), max(columns)
+        grid_w = (max_col - min_col + 1) * step - gap
+        grid_h = (max_row - min_row + 1) * step - gap
+        scale = min(1.0, (width * 0.76) / grid_w, (height * 0.62) / grid_h)
+        tile *= scale
+        gap *= scale
+        step = tile + gap
+        grid_w = (max_col - min_col + 1) * step - gap
+        grid_h = (max_row - min_row + 1) * step - gap
+        origin_x = width / 2 - grid_w / 2
+        origin_y = height / 2 - grid_h / 2 - 24
+
+        bg_pad = 26
+        arcade.draw_rect_filled(
+            arcade.LBWH(
+                origin_x - bg_pad,
+                origin_y - bg_pad,
+                grid_w + bg_pad * 2,
+                grid_h + bg_pad * 2,
+            ),
+            (8, 10, 17, 225),
+        )
+        arcade.draw_rect_outline(
+            arcade.LBWH(
+                origin_x - bg_pad,
+                origin_y - bg_pad,
+                grid_w + bg_pad * 2,
+                grid_h + bg_pad * 2,
+            ),
+            (212, 165, 78, 150),
+            2,
+        )
+
+        def center_for(room):
+            row, column = room
+            x = origin_x + (column - min_col) * step + tile / 2
+            y = origin_y + (max_row - row) * step + tile / 2
+            return x, y
+
+        drawn_edges = set()
+        for room, exits in ROOM_CONNECTIONS.items():
+            if room not in rooms:
+                continue
+            x1, y1 = center_for(room)
+            for target in exits.values():
+                if target not in rooms:
+                    continue
+                edge = frozenset((room, target))
+                if edge in drawn_edges:
+                    continue
+                drawn_edges.add(edge)
+                x2, y2 = center_for(target)
+                arcade.draw_line(x1, y1, x2, y2, (176, 166, 142, 170), max(2, int(4 * scale)))
+
+        for room in rooms:
+            x, y = center_for(room)
+            left = x - tile / 2
+            bottom = y - tile / 2
+            if room == self.current_room:
+                fill = (238, 230, 206, 235)
+                outline = (212, 165, 78, 255)
+            elif room in SAFE_ROOMS:
+                fill = (212, 165, 78, 185)
+                outline = (238, 230, 206, 150)
+            else:
+                fill = (42, 49, 64, 210)
+                outline = (176, 166, 142, 125)
+
+            arcade.draw_rect_filled(arcade.LBWH(left, bottom, tile, tile), fill)
+            arcade.draw_rect_outline(arcade.LBWH(left, bottom, tile, tile), outline, max(1, int(2 * scale)))
+            if room == self.current_room:
+                arcade.draw_circle_filled(x, y, max(5, 8 * scale), (116, 181, 255, 255))
+
+            if tile >= 28:
+                arcade.draw_text(
+                    f"{room[0]}-{room[1]}",
+                    x,
+                    y - tile / 2 - 12,
+                    (176, 166, 142, 175),
+                    max(8, int(10 * scale)),
+                    anchor_x="center",
+                    anchor_y="center",
+                    font_name="Garamond",
+                )
 
     def _draw_interaction_prompt(self):
         if self.dialogue_active:
@@ -2575,6 +2700,11 @@ class GameView(arcade.View):
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed."""
 
+        if self.map_open:
+            if key in (SETTINGS.key_map, arcade.key.ESCAPE):
+                self.map_open = False
+            return
+
         if self.dialogue_active:
             if key in (arcade.key.ENTER, arcade.key.SPACE):
                 self.advance_dialogue()
@@ -2595,6 +2725,11 @@ class GameView(arcade.View):
             if self._can_use_shop():
                 self._use_shop()
                 return
+
+        if key == SETTINGS.key_map:
+            if self.daedalus_dialogue_complete:
+                self.map_open = True
+            return
 
         if key == SETTINGS.key_pause:
             from views.pause_view import PauseMenuView
