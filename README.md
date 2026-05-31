@@ -1,45 +1,83 @@
-# Oh Hermes, send the message
-El proyecto de un videojuego de la asignatura "Tecnología de Videojuegos" de la UAH creado por Daniel Cordos, Daniel Silva, Brayan Nicolás Cotoara y Luis Azaña.
+# Oh Hermes, Send the Message
 
-Este proyecto se desarrolla mediante el uso de Visual Studio Code con el lenguaje de programacion de Python y el uso de las libreria Arcade
+Proyecto de videojuego para la asignatura **Tecnología de Videojuegos** de la UAH, creado por Daniel Cordos, Daniel Silva, Brayan Nicolás Cotoara y Luis Azaña.
 
-Para que funcione este proyecto, se necesita que su Visual Studio Code contenga,o que su ordenador pueda procesar, las versiones que este en requirements.txt. Para poder instalar las versiones, tendras que poner la siguiente linea en la terminal :
-    pip install -r requirements.txt
+El juego está desarrollado en **Python** con la librería **Arcade**. Es un plataformas 2D de exploración en el que Hermes recorre salas conectadas, consigue mejoras, recoge plumas y habla con personajes de la mitología griega.
 
-Para ejecutar este videojuego se necesitara la instalacion de lo dicho con anterioriad por motivos de funcionalidad. Tras la instalacion de las versiones, tendreis que ejecutar el archivo main.py desde vuestro Visual Studio Code para que empieze a funcionar.
+## Instalación
 
+Para ejecutar el proyecto es necesario instalar las dependencias indicadas en `requirements.txt`.
 
-Si usted quiere modificar tanto el audio del juego como los controles, debido a que los controles y el audio estan en una configuracion predeterminada, podras acceder de distintas maneras.
-Si usted esta el pantalla de inicio del proyecto, podra modificar los controles y el audio si le das al boton de Ajuste
-Pero si ya estas dentro del juego, tendras que dar al boton de Esc de tu ordenador, que te saldra la pantalla de Pausa, y ahi darle el boton de Ajuste
+```bash
+pip install -r requirements.txt
+```
 
+Después, ejecuta el archivo principal:
 
-La organizacion de este trabajo se divide en tres carpetas:
+```bash
+python src/main.py
+```
 
-    assets: Contiene los recursos multimedia y visuales.
+También se puede ejecutar desde Visual Studio Code abriendo el proyecto y lanzando `src/main.py`.
 
-        Images: Imágenes con el logo del juego y de la Universidad de Alcalá.
+## Controles por defecto
 
-        Mapas: Fondos para los diferentes niveles, al igual que las plataformas que los construyen.
+| Acción | Tecla |
+| --- | --- |
+| Mover arriba / saltar | `W` |
+| Mover abajo | `S` |
+| Mover izquierda | `A` |
+| Mover derecha | `D` |
+| Dash | `Shift izquierdo` |
+| Interactuar / hablar / comprar | `E` |
+| Abrir mapa | `M` |
+| Pausa | `Esc` |
+| Reiniciar sala | `R` |
 
-        Mp4, SFX y Music: Música del juego (de cada nivel, pantallas de ajuste o menú), efectos especiales y sonidos (tanto al hablar como de las acciones de los personajes).
-        Niveles: Todos los niveles creados en Tiled, los tilesets que los conforman y la perspectiva de cómo se vería todo junto guardado en un .world.
+Los controles pueden modificarse desde **Ajustes**. Se puede acceder a esta pantalla desde el menú principal o desde el menú de pausa dentro del juego.
 
-        Sprites: Representaciones de nuestros personajes en formato de sprites con un toque artístico de pixel art.
+## Estructura del proyecto
 
-    Docs: Documentación del proyecto.
+La organización principal del proyecto es:
 
-        Memoria: Para dar contexto a la historia y a la aparición de los personajes. También incluye la temática que va a tener el juego tanto en historia como en jugabilidad.
-        Diálogos: Los textos que van a tener nuestros personajes entre sí.
-    Src: Código fuente del juego.
+- `assets/`: recursos multimedia y visuales.
+- `assets/images/`: imágenes del juego, logos y recursos visuales generales.
+- `assets/Mapas/`: fondos y recursos relacionados con mapas.
+- `assets/mp4/`: vídeos utilizados en menús o pantallas.
+- `assets/Music/`: música, efectos y sonidos.
+- `assets/Niveles/`: niveles creados con Tiled y archivos `.tmx`.
+- `assets/Sprites/`: sprites de personajes, plumas y otros elementos.
+- `assets/VSX/`: voces y sonidos contextuales de personajes.
+- `docs/`: documentación del proyecto.
+- `docs/Dialogues/`: textos de diálogos de los personajes.
+- `docs/memoria.md`: memoria técnica del proyecto.
+- `src/`: código fuente del juego.
+- `src/data/`: guardado de partida y configuración.
+- `src/models/`: modelos base de personajes.
+- `src/views/`: pantallas del juego, como menú, ajustes, pausa, créditos y vista principal.
 
-        Data: La información de guardado para almacenar el progreso.
+## Ajustes
 
-        Generación: El código encargado de generar los personajes con sus respectivos sprites y datos acerca de su movimiento.
+Desde la pantalla de ajustes se puede modificar:
 
-        Pantallas: La creación de las diferentes pantallas que puede haber en el videojuego, como el menú, los ajustes e incluso las pantallas donde se va a desarrollar el juego.
+- Volumen de música.
+- Volumen de voces.
+- Volumen de efectos.
+- Pantalla completa.
+- Controles del jugador.
 
+La configuración se guarda automáticamente en `src/data/settings.json`.
 
+## Guardado
 
+El progreso de la partida se guarda en `src/data/savegame.json`. El juego registra la última habitación segura visitada, vidas, plumas, mejoras desbloqueadas y progreso de diálogos.
+
+## Documentación
+
+La memoria completa del proyecto está en:
+
+```text
+docs/memoria.md
+```
 
 ¡Disfrutad del proyecto!
