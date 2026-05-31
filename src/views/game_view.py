@@ -255,14 +255,24 @@ FEATHER_GOLDEN_PATH = ASSETS_ROOT / "Sprites" / "Feathers" / "golden_feather.png
 FEATHER_BLUE_PATH   = ASSETS_ROOT / "Sprites" / "Feathers" / "blue_timer_feather.png"
 FEATHER_GOLDEN_VALUE       = 5
 
+# Sprite por tipo de tienda — cambiar la ruta cuando haya arte nuevo
+_CADUCEO_PATH = ASSETS_ROOT / "Sprites" / "caduceo_tienda.png"
+SHOP_SPRITE_PATHS = {
+    "life":        FEATHER_GOLDEN_PATH,
+    "dash":        _CADUCEO_PATH,
+    "double_jump": _CADUCEO_PATH,
+    "wall_jump":   _CADUCEO_PATH,
+}
+
 # Tiendas de habilidades: sala → {tipo, coste, nombre}
 ABILITY_SHOPS = {
-    (0, 1): {"type": "life",        "cost": 12, "label": "una Vida extra"},
-    (0, 7): {"type": "life",        "cost": 12, "label": "una Vida extra"},
-    (2, 7): {"type": "life",        "cost": 12, "label": "una Vida extra"},
-    (3, 3): {"type": "wall_jump",   "cost": 18, "label": "Salto en Pared"},
-    (4, 7): {"type": "double_jump", "cost": 18, "label": "Doble Salto"},
-    (0, 6): {"type": "dash",        "cost": 12, "label": "Dash"},
+    (0, 1): {"type": "life",        "cost": 12, "label": "una Vida extra", "fixed_x": 265},
+    (0, 7): {"type": "life",        "cost": 12, "label": "una Vida extra", "fixed_x": 1680},
+    (2, 6): {"type": "life",        "cost": 12, "label": "una Vida extra", "fixed_x": 1830},
+    (3, 6): {"type": "life",        "cost": 12, "label": "una Vida extra", "fixed_x": 1720},
+    (3, 3): {"type": "wall_jump",   "cost": 18, "label": "Salto en Pared", "fixed_x": 800},
+    (4, 7): {"type": "double_jump", "cost": 18, "label": "Doble Salto", "fixed_x": 200, "start_y": 350},
+    (0, 6): {"type": "dash",        "cost": 12, "label": "Dash", "fixed_x": 920},
 }
 SHOP_INTERACT_DISTANCE = 90
 FEATHER_BLUE_TIMER         = 13.0
@@ -1669,18 +1679,29 @@ class GameView(arcade.View):
             return
         if shop["type"] == "wall_jump" and self.has_wall_jump:
             return
-        # Colocar marcador en aire libre, preferiblemente cerca del centro horizontal
-        if not self._tex_golden:
-            return
-        rng = random.Random(hash(self.current_room) ^ 0xA17A4)
-        candidates = self._find_open_air_positions(rng, 20, min_y_frac=0.15, max_y_frac=0.75)
-        if not candidates:
-            return
-        mid_x = self.map_width / 2
-        cx, cy = min(candidates, key=lambda p: abs(p[0] - mid_x))
-        s = arcade.Sprite(scale=1.5)
-        s.texture = self._tex_golden
-        s.center_x, s.center_y = cx, cy
+        # Colocar marcador: posición fija por columna o auto en aire libre
+        tex_path = SHOP_SPRITE_PATHS.get(shop["type"], FEATHER_GOLDEN_PATH)
+        sprite_scale = 1.5 if shop["type"] == "life" else 2.2
+        s = arcade.Sprite(scale=sprite_scale)
+        s.texture = arcade.load_texture(str(tex_path))
+
+        if "fixed_x" in shop:
+            s.center_x = shop["fixed_x"]
+            start_y = shop.get("start_y", self.map_height)
+            s.center_y = start_y
+            for _ in range(int(start_y)):
+                s.center_y -= 1
+                if arcade.check_for_collision_with_list(s, self.platform_sprites):
+                    s.center_y += 24
+                    break
+        else:
+            rng = random.Random(hash(self.current_room) ^ 0xA17A4)
+            candidates = self._find_open_air_positions(rng, 20, min_y_frac=0.15, max_y_frac=0.75)
+            if not candidates:
+                return
+            mid_x = self.map_width / 2
+            cx, cy = min(candidates, key=lambda p: abs(p[0] - mid_x))
+            s.center_x, s.center_y = cx, cy
         self.shop_sprite = s
         self.shop_data = shop
 
@@ -1820,8 +1841,8 @@ class GameView(arcade.View):
         self._blue_trail_sprites.draw()
         if self.shop_sprite:
             arcade.draw_circle_filled(
-                self.shop_sprite.center_x, self.shop_sprite.center_y + 8,
-                36, (212, 165, 78, 55),
+                self.shop_sprite.center_x, self.shop_sprite.center_y,
+                52, (212, 165, 78, 90),
             )
             arcade.draw_sprite(self.shop_sprite)
 
