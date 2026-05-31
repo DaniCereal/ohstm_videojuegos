@@ -2662,6 +2662,16 @@ class GameView(arcade.View):
                 self._use_shop()
                 return
 
+        # DEBUG: F9 = final bueno, F10 = final malo
+        if key == arcade.key.F9:
+            from views.ending_view import EndingView
+            self.window.show_view(EndingView(good_ending=True, previous_view=self))
+            return
+        if key == arcade.key.F10:
+            from views.ending_view import EndingView
+            self.window.show_view(EndingView(good_ending=False, previous_view=self))
+            return
+
         if key == SETTINGS.key_map:
             if self.daedalus_dialogue_complete:
                 self.map_open = True
