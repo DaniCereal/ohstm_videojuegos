@@ -512,7 +512,7 @@ class GameView(arcade.View):
         self.collect_coin_sound = arcade.load_sound(":resources:sounds/coin1.wav")
         self.jump_sound = arcade.load_sound(":resources:sounds/jump1.wav")
         _death_wav = ASSETS_ROOT / "VSX" / "Hermes" / "HermesDeath.wav"
-        self.gameover_voice = arcade.load_sound(_death_wav) if _death_wav.exists() else None
+        self.gameover_voice = arcade.load_sound(str(_death_wav)) if _death_wav.exists() else None
         self.gameover_sound = arcade.load_sound(":resources:sounds/gameover1.wav")
         self.hit_sound = arcade.load_sound(":resources:sounds/hit5.wav")
 
@@ -2680,30 +2680,6 @@ class GameView(arcade.View):
             self.window.show_view(PauseMenuView(self))
             return
 
-        if key == SETTINGS.key_restart:
-            new_game = GameView(
-                level=self.level,
-                score=self.score,
-                lives=self.lives,
-                room_position=self.current_room,
-                entry_side=self.entry_side,
-                daedalus_dialogue_complete=self.daedalus_dialogue_complete,
-                daedalus_second_dialogue_complete=self.daedalus_second_dialogue_complete,
-                talked_to_zeus=self.talked_to_zeus,
-                hades_dialogue_complete=self.hades_dialogue_complete,
-                dialogue_progress=self.dialogue_progress,
-                inherited_overworld_track_index=self.overworld_track_index,
-                feather_count=self.feather_count,
-                cleared_feather_rooms=self.cleared_feather_rooms,
-                collected_feathers=self.collected_feathers,
-                has_double_jump=self.has_double_jump,
-                has_dash=self.has_dash,
-                has_wall_jump=self.has_wall_jump,
-                max_lives=self.max_lives,
-            )
-            self.window.show_view(new_game)
-            return
-
         if key == SETTINGS.key_up:
             if not self.up_pressed:
                 self.jump_queued = True
@@ -2946,7 +2922,10 @@ class GameOverView(arcade.View):
         self.time   = 0.0
         self.stars  = []
         self.embers = []
-        self.music        = arcade.load_sound("../assets/Music/OST/Menu_Caido.ogg", streaming=True)
+        self.music = arcade.load_sound(
+            str(ASSETS_ROOT / "Music" / "OST" / "Menu_Caido.ogg"),
+            streaming=True,
+        )
         self.music_player = None
 
 

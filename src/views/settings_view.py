@@ -34,7 +34,6 @@ class SettingsView(arcade.View):
             ("Dash", "key_dash", "controls"),
             ("Mapa", "key_map", "controls"),
             ("Pausa", "key_pause", "controls"),
-            ("Reiniciar", "key_restart", "controls"),
             ("Volver", "back", "back"),
         ]
 

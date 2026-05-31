@@ -32,7 +32,6 @@ También se puede ejecutar desde Visual Studio Code abriendo el proyecto y lanza
 | Interactuar / hablar / comprar | `E` |
 | Abrir mapa | `M` |
 | Pausa | `Esc` |
-| Reiniciar sala | `R` |
 
 Los controles pueden modificarse desde **Ajustes**. Se puede acceder a esta pantalla desde el menú principal o desde el menú de pausa dentro del juego.
 

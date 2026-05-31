@@ -1,7 +1,10 @@
 import arcade
+from pathlib import Path
 
 from data.settings import SETTINGS
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ASSETS_ROOT = PROJECT_ROOT / "assets"
 LOGO_HEIGHT = 160
 
 
@@ -13,7 +16,7 @@ class CreditsView(arcade.View):
     def __init__(self, previous_view, music_player=None, use_main_menu=False):
         super().__init__()
         self.previous_view = previous_view
-        self.music = arcade.load_sound("../assets/Music/OST/MusicaCreditos.ogg")
+        self.music = arcade.load_sound(str(ASSETS_ROOT / "Music" / "OST" / "MusicaCreditos.ogg"))
         self.music_player = None
         self._handoff_player = music_player  # pre-playing credits track (good ending)
         self._fade_music = True              # False when music is already at full volume
@@ -35,9 +38,9 @@ class CreditsView(arcade.View):
         self.scroll_offset = 0
         self.scroll_finished = False
 
-        self.logo_game = arcade.load_texture("../assets/images/LogoNoBackground.png")
+        self.logo_game = arcade.load_texture(str(ASSETS_ROOT / "images" / "LogoNoBackground.png"))
         try:
-            self.logo_uah = arcade.load_texture("../assets/images/LogoUAH.png")
+            self.logo_uah = arcade.load_texture(str(ASSETS_ROOT / "images" / "LogoUAH.png"))
         except Exception:
             self.logo_uah = None
 

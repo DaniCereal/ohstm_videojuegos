@@ -1,6 +1,6 @@
 {
     "music_volume": 0.031427192664977295,
-    "voice_volume": 0.8306792134153692,
+    "voice_volume": 0.20484980094100574,
     "sfx_volume": 0.0751598504041498,
     "fullscreen": false,
     "key_up": 119,
@@ -9,6 +9,5 @@
     "key_right": 100,
     "key_dash": 65505,
     "key_map": 109,
-    "key_pause": 65307,
-    "key_restart": 114
+    "key_pause": 65307
 }

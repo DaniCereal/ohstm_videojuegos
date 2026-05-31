@@ -3,6 +3,7 @@ from pathlib import Path
 from data.settings import SETTINGS
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ASSETS_ROOT = PROJECT_ROOT / "assets"
 
 _GOOD_TITLE = "FINAL BUENO"
 _GOOD_SUBTITLE = "El equilibrio ha sido restaurado"
@@ -58,7 +59,7 @@ class EndingView(arcade.View):
             self.quote_color = (180, 165, 130)
             self.hint_color = (210, 190, 145, 90)
             self.line_color = (199, 150, 69, 45)
-            music_rel = "assets/Music/OST/MusicaCreditos.ogg"
+            music_path = ASSETS_ROOT / "Music" / "OST" / "MusicaCreditos.ogg"
             self.title_text = _GOOD_TITLE
             self.subtitle_text = _GOOD_SUBTITLE
             self.body_lines = _GOOD_BODY
@@ -70,12 +71,12 @@ class EndingView(arcade.View):
             self.quote_color = (145, 100, 90)
             self.hint_color = (160, 110, 100, 90)
             self.line_color = (140, 40, 30, 45)
-            music_rel = "assets/Music/OST/Underworld_2_clean.wav"
+            music_path = ASSETS_ROOT / "Music" / "OST" / "Underworld_2_clean.wav"
             self.title_text = _BAD_TITLE
             self.subtitle_text = _BAD_SUBTITLE
             self.body_lines = _BAD_BODY
 
-        self.music = arcade.load_sound(str(PROJECT_ROOT / music_rel))
+        self.music = arcade.load_sound(str(music_path))
         self.music_player = None
 
         self.fade_elapsed = 0.0

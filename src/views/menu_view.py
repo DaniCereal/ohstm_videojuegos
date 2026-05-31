@@ -13,13 +13,16 @@ from data.savegame import reset_save
 from views.credits_view import CreditsView
 from views.settings_view import SettingsView
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ASSETS_ROOT = PROJECT_ROOT / "assets"
+
 
 class MainMenu(arcade.View):
     def __init__(self):
         super().__init__()
 
-        self.video = cv2.VideoCapture("../assets/mp4/Menu_principal.mp4")
-        self.music = arcade.load_sound("../assets/Music/OST/MenuPrincipal.ogg")
+        self.video = cv2.VideoCapture(str(ASSETS_ROOT / "mp4" / "Menu_principal.mp4"))
+        self.music = arcade.load_sound(str(ASSETS_ROOT / "Music" / "OST" / "MenuPrincipal.ogg"))
         self.music_player = self.music.play(
             volume=SETTINGS.music_volume,
             loop=True,
@@ -27,7 +30,7 @@ class MainMenu(arcade.View):
 
         self.current_frame_texture = None
         self.font_name = "Garamond"
-        self.logo = arcade.load_texture("../assets/images/LogoNoBackground.png")
+        self.logo = arcade.load_texture(str(ASSETS_ROOT / "images" / "LogoNoBackground.png"))
         self.fade_texture = self._create_fade_texture()
 
         self.selected_index = 0
@@ -163,28 +166,11 @@ class MainMenu(arcade.View):
     def new_game(self):
         self.stop_menu_media()
 
-        from views.game_view import GameView
+        from views.intro_view import IntroStoryView
 
         save_data = reset_save()
-        game = GameView(
-            score=save_data["score"],
-            lives=save_data["lives"],
-            max_lives=save_data["max_lives"],
-            room_position=save_data["room"],
-            entry_side=save_data["entry_side"],
-            daedalus_dialogue_complete=save_data["daedalus_dialogue_complete"],
-            daedalus_second_dialogue_complete=save_data["daedalus_second_dialogue_complete"],
-            talked_to_zeus=save_data["talked_to_zeus"],
-            hades_dialogue_complete=save_data["hades_dialogue_complete"],
-            dialogue_progress=save_data["dialogue_progress"],
-            feather_count=save_data["feather_count"],
-            cleared_feather_rooms=save_data["cleared_feather_rooms"],
-            has_double_jump=save_data["has_double_jump"],
-            has_dash=save_data["has_dash"],
-            has_wall_jump=save_data["has_wall_jump"],
-        )
-        self.current_game_view = game
-        self.window.show_view(game)
+        intro = IntroStoryView(save_data)
+        self.window.show_view(intro)
 
     def continue_game(self):
         self.stop_menu_media()

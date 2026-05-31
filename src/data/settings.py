@@ -24,7 +24,6 @@ class GameSettings:
         self.key_dash = arcade.key.LSHIFT
         self.key_map = arcade.key.M
         self.key_pause = arcade.key.ESCAPE
-        self.key_restart = arcade.key.R
 
     def save(self):
 
@@ -42,7 +41,6 @@ class GameSettings:
             "key_dash": self.key_dash,
             "key_map": self.key_map,
             "key_pause": self.key_pause,
-            "key_restart": self.key_restart,
         }
 
         with open(SETTINGS_PATH, "w", encoding="utf-8") as file:
@@ -68,7 +66,6 @@ class GameSettings:
             self.key_dash = data.get("key_dash", self.key_dash)
             self.key_map = data.get("key_map", self.key_map)
             self.key_pause = data.get("key_pause", self.key_pause)
-            self.key_restart = data.get("key_restart", self.key_restart)
 
         except (FileNotFoundError, json.JSONDecodeError, KeyError, TypeError):
             self.save()

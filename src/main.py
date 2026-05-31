@@ -11,9 +11,6 @@ from data.settings import SETTINGS
 from views.menu_view import MainMenu
 from constants import *
 
-import os
-os.chdir(Path(__file__).parent)
-
 def main():
     """Main function"""
     window = arcade.Window(
