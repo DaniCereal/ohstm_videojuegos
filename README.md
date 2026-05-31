@@ -9,6 +9,11 @@ Para que funcione este proyecto, se necesita que su Visual Studio Code contenga,
 Para ejecutar este videojuego se necesitara la instalacion de lo dicho con anterioriad por motivos de funcionalidad. Tras la instalacion de las versiones, tendreis que ejecutar el archivo main.py desde vuestro Visual Studio Code para que empieze a funcionar.
 
 
+Si usted quiere modificar tanto el audio del juego como los controles, debido a que los controles y el audio estan en una configuracion predeterminada, podras acceder de distintas maneras.
+Si usted esta el pantalla de inicio del proyecto, podra modificar los controles y el audio si le das al boton de Ajuste
+Pero si ya estas dentro del juego, tendras que dar al boton de Esc de tu ordenador, que te saldra la pantalla de Pausa, y ahi darle el boton de Ajuste
+
+
 La organizacion de este trabajo se divide en tres carpetas:
 
     assets: Contiene los recursos multimedia y visuales.
