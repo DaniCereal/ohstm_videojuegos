@@ -296,7 +296,7 @@ DAEDALUS_POSITION = (255, 170)
 ZEUS_ROOM = (0, 2)
 ZEUS_POSITION = (95, 520)
 DIALOGUE_INTERACT_DISTANCE = 96
-DIALOGUE_PATH = PROJECT_ROOT / "docs" / "Dialogues" / "DedaloFirstTimeMeet"
+DIALOGUE_PATH_Dedalo_F = PROJECT_ROOT / "docs" / "Dialogues" / "DedaloFirstTimeMeet"
 DEDALO_VOICE_DIR = PROJECT_ROOT / "assets" / "VSX" / "Dedalo"
 HERMES_SPEAKING_DIR = PROJECT_ROOT / "assets" / "VSX" / "Hermes" / "HermesSpeaking"
 HERMES_MOVEMENT_DIR = PROJECT_ROOT / "assets" / "VSX" / "Hermes" / "Movement"
@@ -768,7 +768,7 @@ class GameView(arcade.View):
         return reset_hitboxes
 
     def load_voice_assets(self):
-        self.dialogue_lines = self.load_dialogue(DIALOGUE_PATH)
+        self.dialogue_lines = self.load_dialogue(DIALOGUE_PATH_Dedalo_F)
         self.voice_sounds = {
             "dedalo": self.load_sound_folder(DEDALO_VOICE_DIR),
             "hermes": self.load_sound_folder(HERMES_SPEAKING_DIR),
@@ -802,7 +802,7 @@ class GameView(arcade.View):
         return text.lower().strip()
 
     @staticmethod
-    def load_dialogue(dialogue_path):
+    def load_dialogue(dialogue_path_Dedalo_F):
         if not dialogue_path.exists():
             return []
 
@@ -821,7 +821,7 @@ class GameView(arcade.View):
                 )
                 current_text = []
 
-        for raw_line in dialogue_path.read_text(encoding="utf-8").splitlines():
+        for raw_line in dialogue_path_Dedalo_F.read_text(encoding="utf-8").splitlines():
             line = raw_line.strip()
             if not line:
                 flush_current_line()
