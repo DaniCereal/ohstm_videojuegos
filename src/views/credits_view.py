@@ -62,7 +62,6 @@ class CreditsView(arcade.View):
             ("", "space"),
             ("ARTE Y GRAFICOS", "section"),
             ("Sprites de personajes: Brayan Cotoara Moya", "normal"),
-            ("Tilesets: [Fuente de tilesets]", "normal"),
             ("Diseno de interfaz: Daniel Silva Moratilla", "normal"),
             ("Diseno de interfaz: Daniel Cordos Iloie", "normal"),
             ("", "space"),

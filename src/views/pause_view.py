@@ -168,8 +168,21 @@ class PauseMenuView(arcade.View):
             level=self.game_view.level,
             score=self.game_view.score,
             lives=self.game_view.lives,
+            max_lives=self.game_view.max_lives,
             room_position=self.game_view.current_room,
             entry_side=self.game_view.entry_side,
+            daedalus_dialogue_complete=self.game_view.daedalus_dialogue_complete,
+            daedalus_second_dialogue_complete=self.game_view.daedalus_second_dialogue_complete,
+            talked_to_zeus=self.game_view.talked_to_zeus,
+            hades_dialogue_complete=self.game_view.hades_dialogue_complete,
+            dialogue_progress=self.game_view.dialogue_progress,
+            inherited_overworld_track_index=self.game_view.overworld_track_index,
+            feather_count=self.game_view.feather_count,
+            cleared_feather_rooms=self.game_view.cleared_feather_rooms,
+            collected_feathers=self.game_view.collected_feathers,
+            has_double_jump=self.game_view.has_double_jump,
+            has_dash=self.game_view.has_dash,
+            has_wall_jump=self.game_view.has_wall_jump,
         )
         self.window.show_view(new_game)
 

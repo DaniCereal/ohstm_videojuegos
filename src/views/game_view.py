@@ -244,9 +244,16 @@ ROOM_CONNECTIONS = {
 }
 
 SAFE_ROOMS = {(1, 1), (1, 5), (4, 4)}
+MAX_HEARTS = 6
 
 SIDE_EXIT_MARGIN = 1
 FALL_VOID_MARGIN = 20
+ENTRY_SPAWN_POINTS = {
+    "left": (48, 448),
+    "right": (1232, 448),
+    "bottom": (752, 64),
+    "top": (640, 656),
+}
 
 FEATHER_NORMAL_PATH = ASSETS_ROOT / "Sprites" / "Feathers" / "white_feather.png"
 FEATHER_GOLDEN_PATH = ASSETS_ROOT / "Sprites" / "Feathers" / "golden_feather.png"
@@ -295,9 +302,17 @@ DAEDALUS_ROOM = (2, 1)
 DAEDALUS_POSITION = (255, 170)
 ZEUS_ROOM = (0, 2)
 ZEUS_POSITION = (95, 520)
+HADES_ROOM = (4, 2)
+HADES_POSITION = (640, 260)
 DIALOGUE_INTERACT_DISTANCE = 96
 DIALOGUE_PATH_Dedalo_F = PROJECT_ROOT / "docs" / "Dialogues" / "DedaloFirstTimeMeet"
+DEDALO_SECOND_DIALOGUE_PATH = PROJECT_ROOT / "docs" / "Dialogues" / "DedaloSecondTimeMeet"
+ZEUS_DIALOGUE_PATH = PROJECT_ROOT / "docs" / "Dialogues" / "ZeusFirstTimeMeet"
+HADES_NO_ZEUS_DIALOGUE_PATH = PROJECT_ROOT / "docs" / "Dialogues" / "HadesNoTalkingToZeus"
+HADES_ZEUS_DIALOGUE_PATH = PROJECT_ROOT / "docs" / "Dialogues" / "HadesTalkingToZeus"
 DEDALO_VOICE_DIR = PROJECT_ROOT / "assets" / "VSX" / "Dedalo"
+ZEUS_VOICE_DIR = PROJECT_ROOT / "assets" / "VSX" / "Zeus"
+HADES_VOICE_DIR = PROJECT_ROOT / "assets" / "VSX" / "Hades"
 HERMES_SPEAKING_DIR = PROJECT_ROOT / "assets" / "VSX" / "Hermes" / "HermesSpeaking"
 HERMES_MOVEMENT_DIR = PROJECT_ROOT / "assets" / "VSX" / "Hermes" / "Movement"
 SPAWN_OBJECT_LAYER_NAMES = ("Spawns", "Spawn", "PlayerSpawns", "Player Spawns")
@@ -331,12 +346,18 @@ class GameView(arcade.View):
         inherited_music=None,
         inherited_music_player=None,
         daedalus_dialogue_complete=False,
+        daedalus_second_dialogue_complete=False,
+        talked_to_zeus=False,
+        hades_dialogue_complete=False,
+        dialogue_progress=None,
         inherited_overworld_track_index=0,
         feather_count=0,
         cleared_feather_rooms=None,
+        collected_feathers=None,
         has_double_jump=False,
         has_dash=False,
         has_wall_jump=False,
+        max_lives=MAX_LIVES,
     ):
         self.last_wall_touched = 0
 
@@ -349,7 +370,12 @@ class GameView(arcade.View):
                 room_position = save_data["room"]
                 entry_side = save_data["entry_side"]
                 score = save_data["score"]
+                max_lives = save_data.get("max_lives", MAX_LIVES)
                 daedalus_dialogue_complete = save_data["daedalus_dialogue_complete"]
+                daedalus_second_dialogue_complete = save_data.get("daedalus_second_dialogue_complete", False)
+                talked_to_zeus = save_data.get("talked_to_zeus", False)
+                hades_dialogue_complete = save_data.get("hades_dialogue_complete", False)
+                dialogue_progress = save_data.get("dialogue_progress", {})
                 feather_count = save_data["feather_count"]
                 cleared_feather_rooms = save_data.get("cleared_feather_rooms", [])
                 has_double_jump = save_data.get("has_double_jump", False)
@@ -359,13 +385,18 @@ class GameView(arcade.View):
                 room_position = DEFAULT_ROOM
                 entry_side = DEFAULT_ENTRY_SIDE
                 score = 0
+                max_lives = MAX_LIVES
                 daedalus_dialogue_complete = False
+                daedalus_second_dialogue_complete = False
+                talked_to_zeus = False
+                hades_dialogue_complete = False
+                dialogue_progress = {}
                 feather_count = 0
                 cleared_feather_rooms = []
                 has_double_jump = False
                 has_dash = False
                 has_wall_jump = False
-            lives = MAX_LIVES
+            lives = max_lives
 
         if room_position is None:
             room_position = self.room_from_level(level)
@@ -411,6 +442,10 @@ class GameView(arcade.View):
         self.reset_sprites = None
         self.feather_count = feather_count
         self.cleared_feather_rooms = set(tuple(r) for r in (cleared_feather_rooms or []))
+        self.collected_feathers = {
+            str(room_key): set(ids)
+            for room_key, ids in (collected_feathers or {}).items()
+        }
         self.has_double_jump = has_double_jump
         self.has_dash = has_dash
         self.has_wall_jump = has_wall_jump
@@ -434,6 +469,7 @@ class GameView(arcade.View):
         self.zeus_npc = None
         self.zeus_textures = []
         self.zeus_anim_timer = 0
+        self.hades_npc = None
         self.overworld_track_index = inherited_overworld_track_index
 
         # A variable to store our camera object
@@ -445,6 +481,7 @@ class GameView(arcade.View):
         # This variable will store our score as an integer.
         self.score = score
         self.lives = lives
+        self.max_lives = max_lives
 
         # This variable will store the text for score that we will draw to the screen.
         self.score_text = None
@@ -465,7 +502,13 @@ class GameView(arcade.View):
         self.active_dialogue_lines = []
         self.dialogue_active = False
         self.dialogue_index = 0
+        self.dialogue_exit_button_rect = None
         self.daedalus_dialogue_complete = daedalus_dialogue_complete
+        self.daedalus_second_dialogue_complete = daedalus_second_dialogue_complete
+        self.talked_to_zeus = talked_to_zeus
+        self.hades_dialogue_complete = hades_dialogue_complete
+        self.dialogue_progress = dict(dialogue_progress or {})
+        self.dialogue_key = None
         self.voice_player = None
         self.voice_sounds = {}
         self.hermes_movement_sounds = []
@@ -771,7 +814,10 @@ class GameView(arcade.View):
         self.dialogue_lines = self.load_dialogue(DIALOGUE_PATH_Dedalo_F)
         self.voice_sounds = {
             "dedalo": self.load_sound_folder(DEDALO_VOICE_DIR),
+            "dedalus": self.load_sound_folder(DEDALO_VOICE_DIR),
             "hermes": self.load_sound_folder(HERMES_SPEAKING_DIR),
+            "zeus": self.load_sound_folder(ZEUS_VOICE_DIR),
+            "hades": self.load_sound_folder(HADES_VOICE_DIR),
         }
         self.hermes_movement_sounds = self.load_sound_folder(HERMES_MOVEMENT_DIR)
 
@@ -803,7 +849,7 @@ class GameView(arcade.View):
 
     @staticmethod
     def load_dialogue(dialogue_path_Dedalo_F):
-        if not dialogue_path.exists():
+        if not dialogue_path_Dedalo_F.exists():
             return []
 
         lines = []
@@ -874,30 +920,120 @@ class GameView(arcade.View):
                     break
             self.scene.add_sprite("NPCs", self.zeus_npc)
 
-    def can_talk_to_daedalus(self):
-        if not self.daedalus_npc:
+        elif self.current_room == HADES_ROOM:
+            self.hades_npc = arcade.Sprite(
+                ":resources:images/animated_characters/male_person/malePerson_idle.png",
+                scale=1.6,
+            )
+            self.hades_npc.center_x = HADES_POSITION[0]
+            self.hades_npc.center_y = HADES_POSITION[1]
+            self.resolve_sprite_position(
+                self.hades_npc,
+                HADES_POSITION[0],
+                HADES_POSITION[1],
+                prefer_floor=True,
+                search_margin=48,
+            )
+            self.scene.add_sprite("NPCs", self.hades_npc)
+
+    def can_talk_to_npc(self, npc):
+        if not npc:
             return False
 
         distance = math.hypot(
-            self.player_sprite.center_x - self.daedalus_npc.center_x,
-            self.player_sprite.center_y - self.daedalus_npc.center_y,
+            self.player_sprite.center_x - npc.center_x,
+            self.player_sprite.center_y - npc.center_y,
         )
         return distance <= DIALOGUE_INTERACT_DISTANCE
 
+    def can_talk_to_daedalus(self):
+        return self.can_talk_to_npc(self.daedalus_npc)
+
+    def can_talk_to_zeus(self):
+        return self.can_talk_to_npc(self.zeus_npc)
+
+    def can_talk_to_hades(self):
+        return self.can_talk_to_npc(getattr(self, "hades_npc", None))
+
     def start_daedalus_dialogue(self):
-        if not self.dialogue_lines:
+        if not self.daedalus_dialogue_complete:
+            self.start_dialogue("dedalo_first", self.dialogue_lines)
             return
 
-        if self.daedalus_dialogue_complete:
-            self.active_dialogue_lines = [self.dialogue_lines[-1]]
+        second_lines = self.load_dialogue(DEDALO_SECOND_DIALOGUE_PATH)
+        if self.has_wall_jump and not self.daedalus_second_dialogue_complete:
+            self.start_dialogue("dedalo_second", second_lines)
+            return
+
+        repeat_lines = second_lines if self.daedalus_second_dialogue_complete and second_lines else self.dialogue_lines
+        self.start_dialogue("dedalo_repeat", repeat_lines, repeat_last=True)
+
+    def start_zeus_dialogue(self):
+        lines = self.load_dialogue(ZEUS_DIALOGUE_PATH)
+        self.start_dialogue(
+            "zeus_first",
+            lines,
+            completed=self.talked_to_zeus,
+            repeat_last=self.talked_to_zeus,
+        )
+
+    def start_hades_dialogue(self):
+        if self.talked_to_zeus:
+            key = "hades_zeus"
+            path = HADES_ZEUS_DIALOGUE_PATH
         else:
-            self.active_dialogue_lines = self.dialogue_lines
+            key = "hades_no_zeus"
+            path = HADES_NO_ZEUS_DIALOGUE_PATH
+
+        completed = bool(self.dialogue_progress.get(f"{key}_complete"))
+        self.start_dialogue(
+            key,
+            self.load_dialogue(path),
+            completed=completed,
+            repeat_last=completed,
+        )
+
+    def start_dialogue(self, key, lines, completed=False, repeat_last=False):
+        if not lines:
+            return
+
+        self.dialogue_key = key
+        if repeat_last or completed:
+            self.active_dialogue_lines = [lines[-1]]
+            self.dialogue_index = 0
+        else:
+            self.active_dialogue_lines = lines
+            saved_index = int(self.dialogue_progress.get(key, 0))
+            self.dialogue_index = max(0, min(saved_index, len(lines) - 1))
 
         self.dialogue_active = True
-        self.dialogue_index = 0
         self.player_sprite.change_x = 0
         self.player_sprite.change_y = 0
         self.play_current_dialogue_voice()
+
+    def finish_dialogue(self):
+        key = self.dialogue_key
+        if key == "dedalo_first":
+            self.daedalus_dialogue_complete = True
+        elif key == "dedalo_second":
+            self.daedalus_second_dialogue_complete = True
+        elif key == "zeus_first":
+            self.talked_to_zeus = True
+        elif key in ("hades_no_zeus", "hades_zeus"):
+            self.hades_dialogue_complete = True
+            self.dialogue_progress[f"{key}_complete"] = True
+
+        if key:
+            self.dialogue_progress.pop(key, None)
+        self.dialogue_active = False
+        self.dialogue_key = None
+        self.stop_dialogue_voice()
+
+    def exit_dialogue(self):
+        if self.dialogue_key and self.active_dialogue_lines:
+            self.dialogue_progress[self.dialogue_key] = self.dialogue_index
+        self.dialogue_active = False
+        self.stop_dialogue_voice()
 
     def advance_dialogue(self):
         if not self.dialogue_active:
@@ -905,11 +1041,11 @@ class GameView(arcade.View):
 
         self.dialogue_index += 1
         if self.dialogue_index >= len(self.active_dialogue_lines):
-            self.dialogue_active = False
-            self.daedalus_dialogue_complete = True
-            self.stop_dialogue_voice()
+            self.finish_dialogue()
             return
 
+        if self.dialogue_key:
+            self.dialogue_progress[self.dialogue_key] = self.dialogue_index
         self.play_current_dialogue_voice()
 
     def current_dialogue_line(self):
@@ -921,6 +1057,7 @@ class GameView(arcade.View):
     def play_current_dialogue_voice(self):
         line = self.current_dialogue_line()
         if not line:
+            self.dialogue_exit_button_rect = None
             return
 
         self.stop_dialogue_voice()
@@ -973,33 +1110,25 @@ class GameView(arcade.View):
             self.resolve_spawn_collision(margin)
             return
 
-        center_y = max(margin, min(128, self.map_height - margin))
-
-        if self.entry_side == "right":
-            self.player_sprite.center_x = self.map_width - margin
-            self.player_sprite.center_y = center_y
-        elif self.entry_side == "top":
-            self.player_sprite.center_x = margin
-            self.player_sprite.center_y = self.map_height - margin
-        elif self.entry_side == "bottom":
-            self.player_sprite.center_x = margin
-            self.player_sprite.center_y = margin
-        else:
-            self.player_sprite.center_x = margin
-            self.player_sprite.center_y = center_y
+        spawn_x, spawn_y = ENTRY_SPAWN_POINTS.get(
+            self.entry_side,
+            ENTRY_SPAWN_POINTS[DEFAULT_ENTRY_SIDE],
+        )
+        self.player_sprite.center_x = spawn_x
+        self.player_sprite.center_y = spawn_y
 
         self.player_sprite.change_x = 0
         self.player_sprite.change_y = 0
         self.resolve_spawn_collision(margin)
 
-    def resolve_spawn_collision(self, margin):
+    def resolve_spawn_collision(self, margin, prefer_floor=False):
         start_x = self.player_sprite.center_x
         start_y = self.player_sprite.center_y
         self.resolve_sprite_position(
             self.player_sprite,
             start_x,
             start_y,
-            prefer_floor=True,
+            prefer_floor=prefer_floor,
             search_margin=margin / 2,
         )
 
@@ -1183,24 +1312,34 @@ class GameView(arcade.View):
 
         return None
 
-    def activate_safe_room_checkpoint(self):
-        if self.current_room not in SAFE_ROOMS:
-            return
-
-        self.lives = MAX_LIVES
+    def save_checkpoint(self):
         save_game(
             self.current_room,
             self.entry_side,
             score=self.score,
             lives=self.lives,
+            max_lives=self.max_lives,
             has_checkpoint=True,
+            safe_room=self.current_room,
             daedalus_dialogue_complete=self.daedalus_dialogue_complete,
+            daedalus_second_dialogue_complete=self.daedalus_second_dialogue_complete,
+            talked_to_zeus=self.talked_to_zeus,
+            hades_dialogue_complete=self.hades_dialogue_complete,
+            dialogue_progress=self.dialogue_progress,
             feather_count=self.feather_count,
             cleared_feather_rooms=self.cleared_feather_rooms,
             has_double_jump=self.has_double_jump,
             has_dash=self.has_dash,
             has_wall_jump=self.has_wall_jump,
         )
+
+    def activate_safe_room_checkpoint(self):
+        if self.current_room not in SAFE_ROOMS:
+            return
+
+        self.lives = self.max_lives
+        self.collected_feathers.clear()
+        self.save_checkpoint()
         self.update_hud()
 
     def handle_room_exits(self):
@@ -1267,31 +1406,26 @@ class GameView(arcade.View):
             inherited_music=inherited_music,
             inherited_music_player=inherited_player,
             daedalus_dialogue_complete=self.daedalus_dialogue_complete,
+            daedalus_second_dialogue_complete=self.daedalus_second_dialogue_complete,
+            talked_to_zeus=self.talked_to_zeus,
+            hades_dialogue_complete=self.hades_dialogue_complete,
+            dialogue_progress=self.dialogue_progress,
             inherited_overworld_track_index=self.overworld_track_index,
             feather_count=self.feather_count,
             cleared_feather_rooms=self.cleared_feather_rooms,
+            collected_feathers=self.collected_feathers,
             has_double_jump=self.has_double_jump,
             has_dash=self.has_dash,
             has_wall_jump=self.has_wall_jump,
+            max_lives=self.max_lives,
         )
         self.window.show_view(new_game)
 
     def enter_safe_room(self, side):
         self.entry_side = side
-        self.lives = MAX_LIVES
-        save_game(
-            self.current_room,
-            self.entry_side,
-            score=self.score,
-            lives=self.lives,
-            has_checkpoint=True,
-            daedalus_dialogue_complete=self.daedalus_dialogue_complete,
-            feather_count=self.feather_count,
-            cleared_feather_rooms=self.cleared_feather_rooms,
-            has_double_jump=self.has_double_jump,
-            has_dash=self.has_dash,
-            has_wall_jump=self.has_wall_jump,
-        )
+        self.lives = self.max_lives
+        self.collected_feathers.clear()
+        self.save_checkpoint()
         self.play_sfx(self.collect_coin_sound)
         self.place_player_at_entry()
         self.update_hud()
@@ -1301,39 +1435,105 @@ class GameView(arcade.View):
         self.feather_count = max(0, self.feather_count - 2)
         self.apply_feather_unlocks()
         self.update_hud()
-        if self.lives != 0:
+        if self.lives > 0:
             arcade.play_sound(
-            self.gameover_sound, 
-            volume=SETTINGS.sfx_volume
-        )
-
-
-        elif self.lives <= 0:
-            if self.gameover_voice:
-                arcade.play_sound(
-                    self.gameover_voice,
-                    volume=SETTINGS.voice_volume * 0.5
-                )
-            if self.music_player:
-                self.music_player.delete()
-                self.music_player = None
-            from views.transitions import FadeToView
-            score = self.score
-            self.window.show_view(
-                FadeToView(self, lambda: GameOverView(score=score), duration=0.65)
+                self.gameover_sound,
+                volume=SETTINGS.sfx_volume,
             )
+            self.place_player_at_entry()
             return
 
-        self.place_player_at_entry()
-        self.player_sprite.is_dashing = False
-        self.player_sprite.dash_timer = 0
-        self.player_sprite.wall_sliding = False
-        self.player_sprite.wall_jump_lock_timer = 0
-        self.player_sprite.wall_jump_active = False
-        self.update_hud()
+        self.show_game_over()
+
+    def show_game_over(self):
+        if self.gameover_voice:
+            arcade.play_sound(
+                self.gameover_voice,
+                volume=SETTINGS.voice_volume * 0.5
+            )
+
+        if self.music_player:
+            self.music_player.delete()
+            self.music_player = None
+
+        self.window.show_view(
+            GameOverView(
+                score=self.score,
+                game_view=self
+            )
+        )
+
+    def respawn_at_checkpoint(self, play_death_voice=False):
+        save_data = load_save()
+        if not save_data.get("has_checkpoint"):
+            save_data = {
+                **save_data,
+                "room": DEFAULT_ROOM,
+                "entry_side": DEFAULT_ENTRY_SIDE,
+                "score": self.score,
+                "max_lives": self.max_lives,
+                "daedalus_dialogue_complete": self.daedalus_dialogue_complete,
+                "daedalus_second_dialogue_complete": self.daedalus_second_dialogue_complete,
+                "talked_to_zeus": self.talked_to_zeus,
+                "hades_dialogue_complete": self.hades_dialogue_complete,
+                "dialogue_progress": self.dialogue_progress,
+                "feather_count": self.feather_count,
+                "cleared_feather_rooms": self.cleared_feather_rooms,
+                "collected_feathers": self.collected_feathers,
+                "has_double_jump": self.has_double_jump,
+                "has_dash": self.has_dash,
+                "has_wall_jump": self.has_wall_jump,
+            }
+
+        if play_death_voice and self.gameover_voice:
+            arcade.play_sound(self.gameover_voice, volume=SETTINGS.voice_volume * 0.5)
+        if self.music_player:
+            self.music_player.delete()
+            self.music_player = None
+
+        new_game = GameView(
+            score=save_data["score"],
+            lives=save_data.get("max_lives", MAX_LIVES),
+            room_position=save_data.get("safe_room", save_data["room"]),
+            entry_side=save_data["entry_side"],
+            daedalus_dialogue_complete=save_data["daedalus_dialogue_complete"],
+            daedalus_second_dialogue_complete=save_data.get("daedalus_second_dialogue_complete", False),
+            talked_to_zeus=save_data.get("talked_to_zeus", False),
+            hades_dialogue_complete=save_data.get("hades_dialogue_complete", False),
+            dialogue_progress=save_data.get("dialogue_progress", {}),
+            feather_count=save_data["feather_count"],
+            cleared_feather_rooms=save_data.get("cleared_feather_rooms", []),
+            collected_feathers=save_data.get("collected_feathers", {}),
+            has_double_jump=save_data.get("has_double_jump", False),
+            has_dash=save_data.get("has_dash", False),
+            has_wall_jump=save_data.get("has_wall_jump", False),
+            max_lives=save_data.get("max_lives", MAX_LIVES),
+        )
+        self.window.show_view(new_game)
 
     def update_hud(self):
         pass
+
+    def feather_room_key(self):
+        return f"{self.current_room[0]},{self.current_room[1]}"
+
+    def collected_feather_ids_for_current_room(self):
+        return self.collected_feathers.setdefault(self.feather_room_key(), set())
+
+    def is_feather_collected(self, feather_id):
+        return feather_id in self.collected_feathers.get(self.feather_room_key(), set())
+
+    def append_feather_sprite(self, sprite_list, sprite, feather_id):
+        if self.is_feather_collected(feather_id):
+            return
+
+        sprite.feather_id = feather_id
+        sprite_list.append(sprite)
+
+    def mark_feather_collected(self, sprite):
+        feather_id = getattr(sprite, "feather_id", None)
+        if feather_id:
+            self.collected_feather_ids_for_current_room().add(feather_id)
 
     def load_feather_sprites(self):
         self.feather_sprites_normal = arcade.SpriteList()
@@ -1354,30 +1554,31 @@ class GameView(arcade.View):
             if name not in _NONSOLD_LAYERS and len(slist) > 0:
                 self._solid_sprite_lists.append(slist)
 
-        # No colocar plumas en salas ya recolectadas
-        if self.current_room in self.cleared_feather_rooms:
-            return
-
         if "Feathers" in self.tile_map.object_lists:
-            for obj in self.tile_map.object_lists["Feathers"]:
+            for index, obj in enumerate(self.tile_map.object_lists["Feathers"]):
                 props = obj.properties or {}
                 ftype = props.get("feather_type", "normal")
                 cx, cy = self.tile_map.get_cartesian(obj.shape[0], obj.shape[1])
+                feather_id = str(
+                    props.get("id")
+                    or getattr(obj, "name", None)
+                    or f"tmx:{index}:{ftype}:{int(cx)}:{int(cy)}"
+                )
                 if ftype == "golden":
                     s = arcade.Sprite(scale=0.9)
                     s.texture = tex_g
                     s.center_x, s.center_y = cx, cy
-                    self.feather_sprites_golden.append(s)
+                    self.append_feather_sprite(self.feather_sprites_golden, s, feather_id)
                 elif ftype == "blue":
                     s = arcade.Sprite(scale=0.9)
                     s.texture = tex_b
                     s.center_x, s.center_y = cx, cy
-                    self.feather_sprites_blue.append(s)
+                    self.append_feather_sprite(self.feather_sprites_blue, s, feather_id)
                 else:
                     s = arcade.Sprite(scale=0.9)
                     s.texture = tex_n
                     s.center_x, s.center_y = cx, cy
-                    self.feather_sprites_normal.append(s)
+                    self.append_feather_sprite(self.feather_sprites_normal, s, feather_id)
         else:
             self._auto_place_feathers(tex_n, tex_g, tex_b)
 
@@ -1431,23 +1632,31 @@ class GameView(arcade.View):
         mid_x = self.map_width / 2
         blue_pos = min(blue_candidates, key=lambda p: abs(p[0] - mid_x)) if blue_candidates else None
 
-        for x, y in normal_positions:
+        for index, (x, y) in enumerate(normal_positions):
             s = arcade.Sprite(scale=0.9)
             s.texture = tex_n
             s.center_x, s.center_y = x, y
-            self.feather_sprites_normal.append(s)
+            self.append_feather_sprite(self.feather_sprites_normal, s, f"auto:normal:{index}:{int(x)}:{int(y)}")
 
         if golden_pos:
             s = arcade.Sprite(scale=0.9)
             s.texture = tex_g
             s.center_x, s.center_y = golden_pos
-            self.feather_sprites_golden.append(s)
+            self.append_feather_sprite(
+                self.feather_sprites_golden,
+                s,
+                f"auto:golden:{int(golden_pos[0])}:{int(golden_pos[1])}",
+            )
 
         if blue_pos:
             s = arcade.Sprite(scale=0.9)
             s.texture = tex_b
             s.center_x, s.center_y = blue_pos
-            self.feather_sprites_blue.append(s)
+            self.append_feather_sprite(
+                self.feather_sprites_blue,
+                s,
+                f"auto:blue:{int(blue_pos[0])}:{int(blue_pos[1])}",
+            )
 
     def _spawn_blue_trail(self, trigger_x, trigger_y):
         count = FEATHER_BLUE_TRAIL_COUNT
@@ -1537,13 +1746,16 @@ class GameView(arcade.View):
         shop = self.shop_data
         cost = shop["cost"]
         stype = shop["type"]
-        if stype == "life" and self.lives >= MAX_LIVES:
+        if stype == "life" and self.max_lives >= MAX_HEARTS:
             return
         if self.feather_count < cost:
             return
         self.feather_count -= cost
         if stype == "life":
-            self.lives = min(self.lives + 1, MAX_LIVES)
+            self.max_lives = min(self.max_lives + 1, MAX_HEARTS)
+            self.lives = self.max_lives
+            self.shop_sprite = None
+            self.shop_data = None
         elif stype == "double_jump":
             self.has_double_jump = True
             self.shop_sprite = None
@@ -1569,9 +1781,10 @@ class GameView(arcade.View):
         self.player_sprite.dash_available = self.has_dash
         self.player_sprite.has_wall_jump = self.has_wall_jump
 
-    def add_feathers(self, amount):
+    def add_feathers(self, amount, feather_sprite=None):
         self.feather_count += amount
-        self.cleared_feather_rooms.add(self.current_room)
+        if feather_sprite:
+            self.mark_feather_collected(feather_sprite)
         self.apply_feather_unlocks()
         self.play_sfx(self.collect_coin_sound)
         self.update_hud()
@@ -1673,7 +1886,7 @@ class GameView(arcade.View):
         font = "Garamond"
 
         filled = "♥ " * self.lives
-        empty  = "♡ " * (MAX_LIVES - self.lives)
+        empty  = "♡ " * max(0, self.max_lives - self.lives)
         arcade.draw_text(
             (filled + empty).strip(),
             pad, h - 20,
@@ -1733,11 +1946,17 @@ class GameView(arcade.View):
         if self.can_talk_to_daedalus():
             text = "[E]  Hablar con Dédalo"
             color = (212, 165, 78)
+        elif self.can_talk_to_zeus():
+            text = "[E]  Hablar con Zeus"
+            color = (212, 165, 78)
+        elif self.can_talk_to_hades():
+            text = "[E]  Hablar con Hades"
+            color = (212, 165, 78)
         elif self._can_use_shop():
             shop = self.shop_data
             cost = shop["cost"]
             stype = shop["type"]
-            if stype == "life" and self.lives >= MAX_LIVES:
+            if stype == "life" and self.max_lives >= MAX_HEARTS:
                 text = "Vida máxima — no puedes comprar más"
                 color = (150, 150, 150)
             elif self.feather_count < cost:
@@ -1808,12 +2027,41 @@ class GameView(arcade.View):
             text_y -= 24
 
         arcade.draw_text(
-            "Enter / Espacio",
-            box_margin + box_width - 28,
+            "Enter / Espacio: seguir",
+            box_margin + 28,
             box_y + 18,
             (176, 166, 142),
             13,
-            anchor_x="right",
+            anchor_x="left",
+            anchor_y="center",
+            font_name="Garamond",
+        )
+        button_w = 78
+        button_h = 26
+        button_x = box_margin + box_width - button_w - 20
+        button_y = box_y + 8
+        self.dialogue_exit_button_rect = (
+            button_x,
+            button_x + button_w,
+            button_y,
+            button_y + button_h,
+        )
+        arcade.draw_rect_filled(
+            arcade.LBWH(button_x, button_y, button_w, button_h),
+            (35, 38, 49, 230),
+        )
+        arcade.draw_rect_outline(
+            arcade.LBWH(button_x, button_y, button_w, button_h),
+            (176, 166, 142, 200),
+            1,
+        )
+        arcade.draw_text(
+            "Salir",
+            button_x + button_w / 2,
+            button_y + button_h / 2,
+            (238, 230, 206),
+            13,
+            anchor_x="center",
             anchor_y="center",
             font_name="Garamond",
         )
@@ -2083,17 +2331,18 @@ class GameView(arcade.View):
 
         # Feathers
         for f in arcade.check_for_collision_with_list(self.player_sprite, self.feather_sprites_normal):
+            self.add_feathers(1, f)
             f.remove_from_sprite_lists()
-            self.add_feathers(1)
 
         for f in arcade.check_for_collision_with_list(self.player_sprite, self.feather_sprites_golden):
+            self.add_feathers(FEATHER_GOLDEN_VALUE, f)
             f.remove_from_sprite_lists()
-            self.add_feathers(FEATHER_GOLDEN_VALUE)
 
         # Trigger azul — al tocarlo desaparece para siempre y spawnea la estela
         if not self.blue_timer_active:
             for f in arcade.check_for_collision_with_list(self.player_sprite, self.feather_sprites_blue):
                 tx, ty = f.center_x, f.center_y
+                self.mark_feather_collected(f)
                 f.remove_from_sprite_lists()
                 self._spawn_blue_trail(tx, ty)
                 self.blue_timer_active = True
@@ -2308,8 +2557,20 @@ class GameView(arcade.View):
             self.player_sprite.change_x = -PLAYER_MOVEMENT_SPEED
         else:
             self.player_sprite.change_x = 0
-        
-        
+
+
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        if not self.dialogue_active or button != arcade.MOUSE_BUTTON_LEFT:
+            return
+
+        rect = self.dialogue_exit_button_rect
+        if not rect:
+            return
+
+        left, right, bottom, top = rect
+        if left <= x <= right and bottom <= y <= top:
+            self.exit_dialogue()
 
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed."""
@@ -2318,13 +2579,18 @@ class GameView(arcade.View):
             if key in (arcade.key.ENTER, arcade.key.SPACE):
                 self.advance_dialogue()
             elif key == arcade.key.ESCAPE:
-                self.dialogue_active = False
-                self.stop_dialogue_voice()
+                self.exit_dialogue()
             return
 
         if key == arcade.key.E:
             if self.can_talk_to_daedalus():
                 self.start_daedalus_dialogue()
+                return
+            if self.can_talk_to_zeus():
+                self.start_zeus_dialogue()
+                return
+            if self.can_talk_to_hades():
+                self.start_hades_dialogue()
                 return
             if self._can_use_shop():
                 self._use_shop()
@@ -2343,6 +2609,18 @@ class GameView(arcade.View):
                 room_position=self.current_room,
                 entry_side=self.entry_side,
                 daedalus_dialogue_complete=self.daedalus_dialogue_complete,
+                daedalus_second_dialogue_complete=self.daedalus_second_dialogue_complete,
+                talked_to_zeus=self.talked_to_zeus,
+                hades_dialogue_complete=self.hades_dialogue_complete,
+                dialogue_progress=self.dialogue_progress,
+                inherited_overworld_track_index=self.overworld_track_index,
+                feather_count=self.feather_count,
+                cleared_feather_rooms=self.cleared_feather_rooms,
+                collected_feathers=self.collected_feathers,
+                has_double_jump=self.has_double_jump,
+                has_dash=self.has_dash,
+                has_wall_jump=self.has_wall_jump,
+                max_lives=self.max_lives,
             )
             self.window.show_view(new_game)
             return
@@ -2529,6 +2807,19 @@ class GameView(arcade.View):
             score=self.score,
             lives=self.lives,
             entry_side=DEFAULT_ENTRY_SIDE,
+            daedalus_dialogue_complete=self.daedalus_dialogue_complete,
+            daedalus_second_dialogue_complete=self.daedalus_second_dialogue_complete,
+            talked_to_zeus=self.talked_to_zeus,
+            hades_dialogue_complete=self.hades_dialogue_complete,
+            dialogue_progress=self.dialogue_progress,
+            inherited_overworld_track_index=self.overworld_track_index,
+            feather_count=self.feather_count,
+            cleared_feather_rooms=self.cleared_feather_rooms,
+            collected_feathers=self.collected_feathers,
+            has_double_jump=self.has_double_jump,
+            has_dash=self.has_dash,
+            has_wall_jump=self.has_wall_jump,
+            max_lives=self.max_lives,
         )
         self.window.show_view(new_game)
 
@@ -2557,6 +2848,7 @@ class GameOverView(arcade.View):
         super().__init__()
         self.score = score
         self.selected_index = 0
+        self.game_view = game_view
         self.font_name = "Garamond"
         self.cream = (238, 230, 206)
         self.muted  = (176, 166, 142)
@@ -2578,10 +2870,8 @@ class GameOverView(arcade.View):
         self.music        = arcade.load_sound("../assets/Music/OST/Menu_Caido.ogg", streaming=True)
         self.music_player = None
 
-    # ------------------------------------------------------------------ #
-    #  Particles                                                           #
-    # ------------------------------------------------------------------ #
 
+    #  Particles
     def _init_particles(self, w, h):
         self.stars = [
             {
@@ -2609,15 +2899,17 @@ class GameOverView(arcade.View):
             'max_life': random.uniform(2.5, 5.5),
         }
 
-    # ------------------------------------------------------------------ #
-    #  Lifecycle                                                           #
-    # ------------------------------------------------------------------ #
-
+    #  Lifecycle
     def on_show_view(self):
         self.window.ctx.viewport = (0, 0, self.window.width, self.window.height)
         if not self.stars:
             self._init_particles(self.window.width, self.window.height)
-        self.music_player = arcade.play_sound(self.music, volume=SETTINGS.music_volume * 0.75, loop=True)
+        if not self.music_player:
+            self.music_player = arcade.play_sound(
+                self.music,
+                volume=SETTINGS.music_volume * 0.75,
+                loop=True,
+            )
 
     def on_update(self, delta_time):
         self.time += delta_time
@@ -2649,10 +2941,7 @@ class GameOverView(arcade.View):
             if e['life'] >= e['max_life'] or e['y'] > h + 16:
                 e.update(self._spawn_ember(w, h))
 
-    # ------------------------------------------------------------------ #
-    #  Drawing                                                             #
-    # ------------------------------------------------------------------ #
-
+    #  Drawing
     def on_draw(self):
         self.clear()
         w = self.window.width
@@ -2744,9 +3033,7 @@ class GameOverView(arcade.View):
             bold=selected,
         )
 
-    # ------------------------------------------------------------------ #
-    #  Input                                                               #
-    # ------------------------------------------------------------------ #
+    #  Input
 
     def on_key_press(self, key, modifiers):
         if key in (arcade.key.UP, arcade.key.W):
@@ -2783,8 +3070,11 @@ class GameOverView(arcade.View):
 
     def _retry(self):
         self._stop_music()
-        from views.transitions import FadeToView
-        self.window.show_view(FadeToView(self, GameView, duration=0.6))
+        if self.game_view:
+            self.game_view.respawn_at_checkpoint()
+            return
+
+        self.window.show_view(GameView(load_from_save=True))
 
     def _go_menu(self):
         self._stop_music()

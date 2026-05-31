@@ -169,8 +169,19 @@ class MainMenu(arcade.View):
         game = GameView(
             score=save_data["score"],
             lives=save_data["lives"],
+            max_lives=save_data["max_lives"],
             room_position=save_data["room"],
             entry_side=save_data["entry_side"],
+            daedalus_dialogue_complete=save_data["daedalus_dialogue_complete"],
+            daedalus_second_dialogue_complete=save_data["daedalus_second_dialogue_complete"],
+            talked_to_zeus=save_data["talked_to_zeus"],
+            hades_dialogue_complete=save_data["hades_dialogue_complete"],
+            dialogue_progress=save_data["dialogue_progress"],
+            feather_count=save_data["feather_count"],
+            cleared_feather_rooms=save_data["cleared_feather_rooms"],
+            has_double_jump=save_data["has_double_jump"],
+            has_dash=save_data["has_dash"],
+            has_wall_jump=save_data["has_wall_jump"],
         )
         self.current_game_view = game
         self.window.show_view(game)

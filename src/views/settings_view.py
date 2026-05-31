@@ -375,10 +375,23 @@ class SettingsView(arcade.View):
                 level=old_game.level,
                 score=old_game.score,
                 lives=old_game.lives,
+                max_lives=old_game.max_lives,
                 room_position=old_game.current_room,
                 entry_side=old_game.entry_side,
                 inherited_music=inherited_music,
                 inherited_music_player=inherited_player,
+                daedalus_dialogue_complete=old_game.daedalus_dialogue_complete,
+                daedalus_second_dialogue_complete=old_game.daedalus_second_dialogue_complete,
+                talked_to_zeus=old_game.talked_to_zeus,
+                hades_dialogue_complete=old_game.hades_dialogue_complete,
+                dialogue_progress=old_game.dialogue_progress,
+                inherited_overworld_track_index=old_game.overworld_track_index,
+                feather_count=old_game.feather_count,
+                cleared_feather_rooms=old_game.cleared_feather_rooms,
+                collected_feathers=old_game.collected_feathers,
+                has_double_jump=old_game.has_double_jump,
+                has_dash=old_game.has_dash,
+                has_wall_jump=old_game.has_wall_jump,
             )
             self.window.show_view(new_game)
         elif isinstance(self.previous_view, MainMenu):
