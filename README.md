@@ -17,7 +17,7 @@ Después, ejecuta el archivo principal:
 ```bash
 python src/main.py
 ```
-
+aaaaaaaa
 También se puede ejecutar desde Visual Studio Code abriendo el proyecto y lanzando `src/main.py`.
 
 ## Controles por defecto
