@@ -1,8 +1,8 @@
 {
-    "music_volume": 0.041427192664977295,
+    "music_volume": 0.23411249086924785,
     "voice_volume": 0.20484980094100574,
-    "sfx_volume": 0.0751598504041498,
-    "fullscreen": true,
+    "sfx_volume": 0.3761464166869575,
+    "fullscreen": false,
     "key_up": 119,
     "key_down": 115,
     "key_left": 97,

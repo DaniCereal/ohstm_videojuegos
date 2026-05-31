@@ -17,7 +17,7 @@ def main():
         width=WINDOW_WIDTH,
         height=WINDOW_HEIGHT,
         title=WINDOW_TITLE,
-        resizable=True,
+        resizable=False,
         update_rate=1/60
     )
 
