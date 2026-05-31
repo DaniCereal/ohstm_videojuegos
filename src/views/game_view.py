@@ -298,7 +298,7 @@ DAEDALUS_POSITION = (255, 170)
 ZEUS_ROOM = (0, 2)
 ZEUS_POSITION = (95, 520)
 HADES_ROOM = (4, 2)
-HADES_POSITION = (640, 260)
+HADES_POSITION = (312, 620)
 DIALOGUE_INTERACT_DISTANCE = 96
 DIALOGUE_PATH_Dedalo_F = PROJECT_ROOT / "docs" / "Dialogues" / "DedaloFirstTimeMeet"
 DEDALO_SECOND_DIALOGUE_PATH = PROJECT_ROOT / "docs" / "Dialogues" / "DedaloSecondTimeMeet"
@@ -871,8 +871,8 @@ class GameView(arcade.View):
 
         elif self.current_room == HADES_ROOM:
             self.hades_npc = arcade.Sprite(
-                ":resources:images/animated_characters/male_person/malePerson_idle.png",
-                scale=1.6,
+                ASSETS_ROOT / "Sprites" / "Hades" / "hades_final.png",
+                scale=2.8,
             )
             self.hades_npc.center_x = HADES_POSITION[0]
             self.hades_npc.center_y = HADES_POSITION[1]
@@ -2662,14 +2662,12 @@ class GameView(arcade.View):
                 self._use_shop()
                 return
 
-        # DEBUG: F9 = final bueno, F10 = final malo
+        # DEBUG: F9 = ir a sala de Hades (4,2) con todas las habilidades
         if key == arcade.key.F9:
-            from views.ending_view import EndingView
-            self.window.show_view(EndingView(good_ending=True, previous_view=self))
-            return
-        if key == arcade.key.F10:
-            from views.ending_view import EndingView
-            self.window.show_view(EndingView(good_ending=False, previous_view=self))
+            self.has_double_jump = True
+            self.has_dash = True
+            self.has_wall_jump = True
+            self.change_room((4, 2), "left")
             return
 
         if key == SETTINGS.key_map:

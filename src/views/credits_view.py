@@ -134,6 +134,7 @@ class CreditsView(arcade.View):
         return self.bone, 24, False
 
     def on_show_view(self):
+        arcade.camera.Camera2D().use()
         self.window.ctx.viewport = (0, 0, self.window.width, self.window.height)
         self.scroll_offset = 0
         self.scroll_finished = False

@@ -84,6 +84,7 @@ class EndingView(arcade.View):
         self.ready = False
 
     def on_show_view(self):
+        arcade.camera.Camera2D().use()
         self.window.ctx.viewport = (0, 0, self.window.width, self.window.height)
         self.fade_elapsed = 0.0
         self.fading_in = True
