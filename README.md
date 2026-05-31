@@ -1,5 +1,5 @@
 # Oh Hermes, send the message
-El proyecto de un videojuego de la asignatura "Tecnología de Videojuegos" de la UAH creado por Luis Azaña, Daniel Cordos, Daniel Silva y Brayan Nicolás Cotoara.
+El proyecto de un videojuego de la asignatura "Tecnología de Videojuegos" de la UAH creado por Daniel Cordos, Daniel Silva, Brayan Nicolás Cotoara y Luis Azaña.
 
 Este proyecto se desarrolla mediante el uso de Visual Studio Code con el lenguaje de programacion de Python y el uso de las libreria Arcade
 

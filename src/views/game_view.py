@@ -19,11 +19,6 @@ from constants import *
 
 from models.player import PlayerCharacter
 
-from models.enemy import (
-    RobotEnemy,
-    ZombieEnemy
-)
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ASSETS_ROOT = PROJECT_ROOT / "assets"
 
@@ -325,7 +320,7 @@ PLATFORM_LAYER_CANDIDATES = (
 
 # Capas del TMX que NO son sólidas (no se usan para colisión de plumas)
 _NONSOLD_LAYERS = frozenset({
-    "Enemies", "Coins", "NPCs", "Feathers", "Spawns", "Spawn",
+    "Coins", "NPCs", "Feathers", "Spawns", "Spawn",
     "PlayerSpawns", "Player Spawns", "Ladders", "Moving Platforms",
     "Backgrounds", "Background", "Decorations", "Decoration", "Fondo",
 })
@@ -436,7 +431,6 @@ class GameView(arcade.View):
         self.platform_sprites = None
         self.moving_platform_sprites = None
         self.ladder_sprites = None
-        self.enemy_sprites = None
         self.coin_sprites = None
         self.npc_sprites = None
         self.reset_sprites = None
@@ -562,7 +556,6 @@ class GameView(arcade.View):
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
 
         self.platform_sprites = self.find_platform_sprites()
-        self.enemy_sprites = self.ensure_sprite_list("Enemies")
         self.coin_sprites = self.ensure_sprite_list("Coins")
         self.moving_platform_sprites = self.ensure_sprite_list("Moving Platforms")
         self.ladder_sprites = self.ensure_sprite_list("Ladders")
@@ -579,51 +572,6 @@ class GameView(arcade.View):
 
         self.place_player_at_entry()
         self.scene.add_sprite("Player", self.player_sprite)
-
-        # -- Enemies
-        if "Enemies" in self.tile_map.object_lists:
-            enemies_layer = self.tile_map.object_lists["Enemies"]
-
-            for enemy_marker in enemies_layer:
-                enemy_properties = enemy_marker.properties or {}
-
-                coordinates = self.tile_map.get_cartesian(
-                    enemy_marker.shape[0],
-                    enemy_marker.shape[1]
-                )
-
-                enemy_type = enemy_properties.get("type", "zombie")
-
-                if enemy_type == "robot":
-                    enemy = RobotEnemy()
-
-                elif enemy_type == "zombie":
-                    enemy = ZombieEnemy()
-                else:
-                    enemy = ZombieEnemy()
-
-                enemy.center_x = math.floor(
-                    coordinates[0]
-                    * TILE_SCALING
-                    * self.tile_map.tile_width
-                )
-
-                enemy.center_y = math.floor(
-                    (coordinates[1] + 1)
-                    * (self.tile_map.tile_height * TILE_SCALING)
-                )
-
-                enemy.boundary_left = float(
-                    enemy_properties.get("boundary_left", enemy.center_x - 150)
-                )
-                enemy.boundary_right = float(
-                    enemy_properties.get("boundary_right", enemy.center_x + 150)
-                )
-                enemy.change_x = float(
-                    enemy_properties.get("change_x", enemy.change_x)
-                )
-
-                self.scene.add_sprite("Enemies", enemy)
 
         self.add_room_npcs()
         self._setup_shop()
@@ -2403,7 +2351,6 @@ class GameView(arcade.View):
             [
                 "Coins",
                 "Player",
-                "Enemies"
             ]
         )
 
@@ -2425,34 +2372,19 @@ class GameView(arcade.View):
             self.overworld_track_index += 1
             self._play_overworld_track()
 
-        self.scene.update(delta_time, ["Enemies"])
-
-        # Keep enemies walking within their boundaries configured in Tiled
-        for enemy in self.scene["Enemies"]:
-            if enemy.right > enemy.boundary_right and enemy.change_x > 0:
-                enemy.change_x *= -1
-            elif enemy.left < enemy.boundary_left and enemy.change_x < 0:
-                enemy.change_x *= -1
-
         # See if we hit any coins
         player_collision_list = arcade.check_for_collision_with_lists(
             self.player_sprite,
             [
                 self.coin_sprites,
-                self.enemy_sprites
             ]
         )
 
         for collision in player_collision_list:
-            if self.enemy_sprites in collision.sprite_lists:
-                self.lose_life()
-                return
-            else:
-                # Our collision is a coin, remove it
-                collision.remove_from_sprite_lists()
-                self.play_sfx(self.collect_coin_sound)
-                self.score += 75
-                self.update_hud()
+            collision.remove_from_sprite_lists()
+            self.play_sfx(self.collect_coin_sound)
+            self.score += 75
+            self.update_hud()
 
         # Feathers
         for f in arcade.check_for_collision_with_list(self.player_sprite, self.feather_sprites_normal):
