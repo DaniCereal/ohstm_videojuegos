@@ -6,6 +6,13 @@
 
 El objetivo principal del desarrollo ha sido construir una experiencia jugable centrada en movimiento, exploración y progresión. A lo largo del proyecto se han ido incorporando sistemas de guardado, salas seguras, diálogos, audio contextual, economía mediante plumas, mejoras, mapa de navegación y transiciones entre salas.
 
+### Miembros del equipo y roles
+
+Daniel Silva Moratilla: Jefe de proyecto, programador y beta tester
+Daniel Cordos Iloie: Sonido, programador y arte
+Brayan Nicolás Cotoara Moya: Sonido, diseñador de niveles, arte y beta tester
+Luis Azaña Soriano: diseñador de niveles
+
 ## 2. Concepto del juego
 
 El juego está ambientado en una interpretación mitológica en la que Hermes recorre distintas zonas conectadas entre sí. El diseño del mapa se organiza como una cuadrícula de salas, donde cada sala se identifica mediante coordenadas de fila y columna. Por ejemplo, la sala `(2, 0)` representa una posición concreta dentro del mapa general.
